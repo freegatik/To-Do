@@ -1,0 +1,39 @@
+included:
+  - To-Do
+  - To-DoTests
+  - To-DoUITests
+
+excluded:
+  - To-Do.xcodeproj
+  - "**/*.xcworkspace"
+  - "**/DerivedData"
+
+type_name:
+  allowed_symbols: "_"
+  min_length: 3
+  max_length: 45
+
+line_length:
+  warning: 160
+  error: 220
+
+file_length:
+  warning: 1000
+  error: 2200
+
+type_body_length:
+  warning: 300
+  error: 450
+
+function_body_length:
+  warning: 70
+  error: 120
+
+identifier_name:
+  min_length:
+    warning: 2
+  max_length:
+    warning: 60
+    error: 80
+
+reporter: github-actions-logging

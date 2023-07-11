@@ -7,16 +7,20 @@
 
 import UIKit
 
-// Роутер редактора закрывает экран
 protocol TodoEditorRouterProtocol: AnyObject {
     func dismiss()
 }
 
-// Реализация роутера редактора
 final class TodoEditorRouter: TodoEditorRouterProtocol {
     weak var viewController: UIViewController?
 
-    // Собираем модуль редактора под конкретный режим
+    private let dismissPerformer: TodoEditorDismissPerformer
+
+    init(dismissPerformer: TodoEditorDismissPerformer) {
+        self.dismissPerformer = dismissPerformer
+    }
+
+    @MainActor
     static func buildModule(
         mode: TodoEditorMode,
         repository: TodoRepositoryProtocol,
@@ -24,7 +28,7 @@ final class TodoEditorRouter: TodoEditorRouterProtocol {
     ) -> UIViewController {
         let viewController = TodoEditorViewController()
         let interactor = TodoEditorInteractor(repository: repository, mode: mode)
-        let router = TodoEditorRouter()
+        let router = TodoEditorRouter(dismissPerformer: TodoEditorUIKitDismissPerformer())
         let presenter = TodoEditorPresenter(
             view: viewController,
             interactor: interactor,
@@ -41,17 +45,11 @@ final class TodoEditorRouter: TodoEditorRouterProtocol {
     }
 
     func dismiss() {
-        if Self.shouldUseNavigationPop(for: viewController?.navigationController) {
-            viewController?.navigationController?.popViewController(animated: true)
-        } else {
-            viewController?.dismiss(animated: true, completion: nil)
-        }
+        dismissPerformer.dismiss(from: viewController)
     }
 
-    // Выделяем условие в отдельный метод для удобства тестирования
     static func shouldUseNavigationPop(for navigationController: UINavigationController?) -> Bool {
         guard let navigationController else { return false }
         return navigationController.viewControllers.count > 1
     }
 }
-

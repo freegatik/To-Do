@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// Методы обновления интерфейса редактора
 @MainActor
 protocol TodoEditorViewProtocol: AnyObject {
     func configure(with viewModel: TodoEditorViewModel)
@@ -16,14 +15,12 @@ protocol TodoEditorViewProtocol: AnyObject {
     func presentExitConfirmation(canSave: Bool, onSave: @escaping () -> Void, onDiscard: @escaping () -> Void)
 }
 
-/// Что может попросить вью у презентера
 @MainActor
 protocol TodoEditorPresenterProtocol: AnyObject {
     func viewDidLoad()
     func handleBackAction(title: String, details: String?, isCompleted: Bool)
 }
 
-/// Презентер подготавливает данные для UI и закрывает экран
 @MainActor
 final class TodoEditorPresenter: TodoEditorPresenterProtocol {
     weak var view: TodoEditorViewProtocol?
@@ -36,7 +33,6 @@ final class TodoEditorPresenter: TodoEditorPresenterProtocol {
 
     private var currentTodo: TodoItem?
 
-    /// Передаём все зависимости и форматтер
     init(
         view: TodoEditorViewProtocol,
         interactor: TodoEditorInteractorInput,
@@ -104,7 +100,6 @@ final class TodoEditorPresenter: TodoEditorPresenterProtocol {
     }
 }
 
-/// Слушаем ответы интерактора и формируем результат
 extension TodoEditorPresenter: TodoEditorInteractorOutput {
     func didLoad(todo: TodoItem?) {
         currentTodo = todo

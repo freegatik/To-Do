@@ -7,7 +7,6 @@
 
 import UIKit
 
-/// Экран создания и редактирования задачи
 final class TodoEditorViewController: UIViewController {
     var presenter: TodoEditorPresenterProtocol!
     var isUITestEnvironment = ProcessInfo.processInfo.arguments.contains("--uitest")
@@ -146,9 +145,7 @@ final class TodoEditorViewController: UIViewController {
     }
 }
 
-// Собираем экран редактора и расставляем ограничения
 private extension TodoEditorViewController {
-    /// Формируем UI из элементов макета и подключаем жесты
     func setupLayout() {
         view.backgroundColor = .appBlack
         navigationController?.setNavigationBarHidden(true, animated: false)
@@ -239,9 +236,7 @@ private extension TodoEditorViewController {
     }
 }
 
-// Управление вводом и состоянием плейсхолдеров
 private extension TodoEditorViewController {
-    /// Пересчитываем динамическую высоту текстовых полей
     func updateTextHeights() {
         let titleSize = titleTextView.sizeThatFits(CGSize(width: titleTextView.bounds.width, height: .greatestFiniteMagnitude))
         titleHeightConstraint.constant = max(44, titleSize.height)
@@ -252,7 +247,6 @@ private extension TodoEditorViewController {
         view.layoutIfNeeded()
     }
 
-    /// Скрываем плейсхолдеры, когда пользователь ввел текст
     func updatePlaceholders() {
         let titleEmpty = titleTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
         titlePlaceholder.isHidden = !titleEmpty
@@ -261,7 +255,6 @@ private extension TodoEditorViewController {
         bodyPlaceholder.isHidden = !bodyEmpty
     }
 
-    /// Следим за клавиатурой, чтобы поднимать контент
     func registerKeyboardNotifications() {
         let willShow = NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { [weak self] notification in
             guard let self,
@@ -286,26 +279,21 @@ private extension TodoEditorViewController {
         keyboardTokens = [willShow, willHide]
     }
 
-    /// Отключаем наблюдателей клавиатуры при уходе со сцены
     func unregisterKeyboardNotifications() {
         keyboardTokens.forEach(NotificationCenter.default.removeObserver)
         keyboardTokens.removeAll()
     }
 }
 
-// Обработчики пользовательских событий
 private extension TodoEditorViewController {
     @objc
-    /// Сохраняем или закрываем редактор при тапе "Назад"
     func backButtonTapped() {
         view.endEditing(true)
         presenter.handleBackAction(title: titleTextView.text ?? "", details: bodyTextView.text, isCompleted: isCompleted)
     }
 }
 
-// Реализация протокола отображения редактора
 extension TodoEditorViewController: TodoEditorViewProtocol {
-    /// Подставляем данные задачи и настраиваем состояние UI
     func configure(with viewModel: TodoEditorViewModel) {
         titleTextView.text = viewModel.title
         bodyTextView.text = viewModel.details
@@ -332,7 +320,6 @@ extension TodoEditorViewController: TodoEditorViewProtocol {
         }
     }
 
-    /// Прячем/показываем индикатор и блокируем взаимодействия
     func showLoading(_ isLoading: Bool) {
         backButton.isEnabled = !isLoading
         if isLoading {
@@ -342,14 +329,12 @@ extension TodoEditorViewController: TodoEditorViewProtocol {
         }
     }
 
-    /// Показываем алерт, если валидация или сохранение завершились ошибкой
     func showError(message: String) {
         let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
 
-    /// Просим подтвердить выход, когда пользователь ввел данные, но не сохранил
     func presentExitConfirmation(canSave: Bool, onSave: @escaping () -> Void, onDiscard: @escaping () -> Void) {
         let saveWrapper: (() -> Void)? = canSave ? { onSave() } : nil
         let discardWrapper: () -> Void = { onDiscard() }
@@ -438,20 +423,16 @@ extension TodoEditorViewController: TodoEditorViewProtocol {
     }
 }
 
-// Реализуем делегата текстовых вью для синхронизации UI
 extension TodoEditorViewController: UITextViewDelegate {
-    /// Синхронизируем высоту и плейсхолдеры при каждом изменении текста
     func textViewDidChange(_ textView: UITextView) {
         updateTextHeights()
         updatePlaceholders()
     }
 
-    /// Сразу скрываем плейсхолдеры при начале редактирования
     func textViewDidBeginEditing(_ textView: UITextView) {
         updatePlaceholders()
     }
 
-    /// После окончания ввода обновляем состояние плейсхолдеров
     func textViewDidEndEditing(_ textView: UITextView) {
         updatePlaceholders()
     }

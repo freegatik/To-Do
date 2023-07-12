@@ -7,7 +7,6 @@
 
 import UIKit
 
-/// Контекстное меню задачи по макету Figma
 final class TodoContextMenuViewController: UIViewController {
     var onEdit: (() -> Void)?
     var onShare: (() -> Void)?
@@ -145,7 +144,6 @@ private extension TodoContextMenuViewController {
     }
 }
 
-// Построение интерфейса и применение view model
 private extension TodoContextMenuViewController {
     func setupLayout() {
         view.addSubview(dimView)
@@ -257,7 +255,6 @@ private extension TodoContextMenuViewController {
         topConstraint.constant = anchorRect.minY
     }
 
-    /// Настраиваем содержимое карточки и экшены по данным модели
     func applyViewModel() {
         titleLabel.attributedText = ContextMenuTypography.title(
             text: viewModel.title,
@@ -283,7 +280,6 @@ private extension TodoContextMenuViewController {
         taskCard.layer.shadowOpacity = viewModel.isCompleted ? 0 : 1
     }
 
-    /// Мягкая анимация появления меню и затемнения
     func animatePresentation() {
         containerStack.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
         containerStack.alpha = 0
@@ -296,17 +292,14 @@ private extension TodoContextMenuViewController {
     }
 }
 
-// Обработка пользовательских событий и пересчёт позиций меню
 private extension TodoContextMenuViewController {
 
     @objc
-    /// Скрываем меню по тапу по затемнению
     func handleBackgroundTap() {
         dismiss(animated: true)
     }
 
     @objc
-    /// Пробрасываем редактирование в координатор и закрываем контроллер
     func handleEdit() {
         performAndDismiss { [weak self] in
             self?.onEdit?()
@@ -314,7 +307,6 @@ private extension TodoContextMenuViewController {
     }
 
     @objc
-    /// Показываем системный share sheet с данными задачи
     func handleShare() {
         performAndDismiss { [weak self] in
             self?.onShare?()
@@ -322,14 +314,12 @@ private extension TodoContextMenuViewController {
     }
 
     @objc
-    /// Удаляем задачу из списка через презентер
     func handleDelete() {
         performAndDismiss { [weak self] in
             self?.onDelete?()
         }
     }
 
-    /// Вычисляем финальное положение относительно anchorRect
     func updatePreferredPosition() {
         let safeInsets = view.safeAreaInsets
         let maxWidth = view.bounds.width - (safeInsets.left + safeInsets.right) - 40
@@ -352,7 +342,6 @@ private extension TodoContextMenuViewController {
         topConstraint.constant = clampedTop
     }
 
-    /// Выполняем действие и уведомляем об окончании по закрытию
     func performAndDismiss(action: @escaping () -> Void) {
         isPerformingAction = true
         dismiss(animated: true) { [weak self] in
@@ -364,8 +353,6 @@ private extension TodoContextMenuViewController {
     }
 }
 
-// Конфигурация и представления кнопок контекстного меню
-/// Параметры одной кнопки контекстного меню
 private struct MenuActionConfiguration {
     let title: String
     let icon: MenuIcon
@@ -386,14 +373,12 @@ private struct MenuActionConfiguration {
     )
 }
 
-/// Типы иконок, доступные для действий меню
 private enum MenuIcon {
     case edit
     case share
     case delete
 }
 
-/// Кнопка действия со встроенным разделителем и подсветкой
 private final class MenuActionButton: UIButton {
     private let actionConfiguration: MenuActionConfiguration
     private let separatorView = UIView()
@@ -418,7 +403,6 @@ private final class MenuActionButton: UIButton {
         setupHighlightHandler()
     }
 
-    /// Формируем конфигурацию кнопки, чтобы шрифт и иконка совпадали с макетом
     private func setupConfiguration() {
         var buttonConfiguration = UIButton.Configuration.plain()
         buttonConfiguration.title = actionConfiguration.title
@@ -446,7 +430,6 @@ private final class MenuActionButton: UIButton {
         heightConstraint.isActive = true
     }
 
-    /// Добавляем нижний разделитель для многострочных меню
     private func setupSeparator() {
         separatorView.translatesAutoresizingMaskIntoConstraints = false
         separatorView.backgroundColor = UIColor.appStroke.withAlphaComponent(0.5)
@@ -461,7 +444,6 @@ private final class MenuActionButton: UIButton {
         separatorView.isHidden = !actionConfiguration.showsSeparator
     }
 
-    /// Настраиваем подсветку при удержании кнопки
     private func setupHighlightHandler() {
         configurationUpdateHandler = { button in
             button.backgroundColor = button.isHighlighted

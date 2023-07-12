@@ -7,23 +7,19 @@
 
 import UIKit
 
-/// Роутер делает переходы из списка
 protocol TodoListRouterProtocol: AnyObject {
     func presentEditor(mode: TodoEditorMode, output: TodoEditorModuleOutput)
 }
 
-/// Реализация роутера для списка задач
 final class TodoListRouter: TodoListRouterProtocol {
     weak var viewController: UIViewController?
 
     private let repository: TodoRepositoryProtocol
 
-    /// Передаём репозиторий, чтобы делиться им с редактором
     init(repository: TodoRepositoryProtocol) {
         self.repository = repository
     }
 
-    /// Собираем модуль и связываем компоненты
     static func buildModule(repository: TodoRepositoryProtocol) -> UIViewController {
         let viewController = TodoListViewController()
         let interactor = TodoListInteractor(repository: repository)
@@ -39,7 +35,6 @@ final class TodoListRouter: TodoListRouterProtocol {
         return navigationController
     }
 
-    /// Показываем редактор задачи внутри навигации
     func presentEditor(mode: TodoEditorMode, output: TodoEditorModuleOutput) {
         let editor = TodoEditorRouter.buildModule(mode: mode, repository: repository, output: output)
         if let navigationController = viewController?.navigationController {

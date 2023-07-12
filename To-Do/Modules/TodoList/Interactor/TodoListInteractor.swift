@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// Методы интерактора, с которыми общается презентер
 protocol TodoListInteractorInput: AnyObject {
     func loadInitialTodos()
     func refreshTodos()
@@ -16,19 +15,16 @@ protocol TodoListInteractorInput: AnyObject {
     func searchTodos(query: String)
 }
 
-/// Ответы интерактора для презентера
 protocol TodoListInteractorOutput: AnyObject {
     func didUpdateTodos(_ items: [TodoItem])
     func didFail(with error: Error)
 }
 
-/// Реализация интерактора, общаемся с репозиторием
 final class TodoListInteractor: TodoListInteractorInput {
     weak var output: TodoListInteractorOutput?
 
     private let repository: TodoRepositoryProtocol
 
-    /// Передаём репозиторий через init
     init(repository: TodoRepositoryProtocol) {
         self.repository = repository
     }
@@ -73,7 +69,6 @@ final class TodoListInteractor: TodoListInteractorInput {
         }
     }
 
-    /// Простая обработка результата
     private func handle(result: Result<[TodoItem], Error>) {
         switch result {
         case .success(let items):

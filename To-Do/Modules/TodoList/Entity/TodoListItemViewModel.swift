@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// View-модель одной строки списка
 struct TodoListItemViewModel {
     let id: Int64
     let title: String

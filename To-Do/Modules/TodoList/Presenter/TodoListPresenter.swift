@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// Что должно уметь отображение списка
 protocol TodoListViewProtocol: AnyObject {
     func setNavigationTitle(_ title: String)
     func showLoading(_ isLoading: Bool)
@@ -19,7 +18,6 @@ protocol TodoListViewProtocol: AnyObject {
     func share(text: String)
 }
 
-/// Интерфейс презентера для экрана списка
 protocol TodoListPresenterProtocol: AnyObject {
     func viewDidLoad()
     func didTapAdd()
@@ -33,7 +31,6 @@ protocol TodoListPresenterProtocol: AnyObject {
     func contextMenuDidDisappear()
 }
 
-/// Презентер держит состояние списка и навигацию
 final class TodoListPresenter: TodoListPresenterProtocol {
     weak var view: TodoListViewProtocol?
 
@@ -45,7 +42,6 @@ final class TodoListPresenter: TodoListPresenterProtocol {
     private var currentQuery: String = ""
     private var highlightedItem: TodoItem?
 
-    /// Передаём зависимостей и форматтер
     init(
         view: TodoListViewProtocol,
         interactor: TodoListInteractorInput,
@@ -116,7 +112,6 @@ final class TodoListPresenter: TodoListPresenterProtocol {
         highlightedItem = nil
     }
 
-    /// Конвертируем доменные модели в view‑модели
     private func handle(items: [TodoItem]) {
         self.items = items
         let viewModels = items.map(makeViewModel)
@@ -139,7 +134,6 @@ final class TodoListPresenter: TodoListPresenterProtocol {
     }
 }
 
-/// Получаем данные от интерактора
 extension TodoListPresenter: TodoListInteractorOutput {
     func didUpdateTodos(_ items: [TodoItem]) {
         view?.showLoading(false)
@@ -153,7 +147,6 @@ extension TodoListPresenter: TodoListInteractorOutput {
     }
 }
 
-/// Обрабатываем результат работы редактора
 extension TodoListPresenter: TodoEditorModuleOutput {
     func todoEditorDidFinish(with result: TodoEditorResult) {
         switch result {

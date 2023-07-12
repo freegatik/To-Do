@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// Данные для контекстного меню задачи
 struct TodoContextMenuViewModel {
     let title: String
     let details: String?

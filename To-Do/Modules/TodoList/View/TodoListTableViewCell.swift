@@ -7,7 +7,6 @@
 
 import UIKit
 
-/// Ячейка списка в стиле макета
 final class TodoListTableViewCell: UITableViewCell {
     static let reuseIdentifier = "TodoListTableViewCell"
 
@@ -107,7 +106,6 @@ final class TodoListTableViewCell: UITableViewCell {
         statusButton.setImage(nil, for: .normal)
     }
 
-    /// Настраиваем ячейку данными
     func configure(with viewModel: TodoListItemViewModel) {
         if viewModel.isCompleted {
             let attributed = NSMutableAttributedString(string: viewModel.title)
@@ -150,19 +148,16 @@ final class TodoListTableViewCell: UITableViewCell {
         statusButton.accessibilityHint = viewModel.isCompleted ? "Нажмите, чтобы отметить как невыполненную" : "Нажмите, чтобы отметить как выполненную"
     }
 
-    /// Управляем отображением разделительной линии между задачами
     func setShowsSeparator(_ isVisible: Bool) {
         separatorView.isHidden = !isVisible
     }
 
-    /// Подписываемся на нажатие по кнопке статуса задачи
     func setToggleHandler(_ handler: @escaping () -> Void) {
         onToggleStatus = handler
         statusButton.removeTarget(self, action: #selector(handleStatusTap), for: .touchUpInside)
         statusButton.addTarget(self, action: #selector(handleStatusTap), for: .touchUpInside)
     }
 
-    /// Расширяем hit area кнопки статуса, чтобы в неё было проще попасть
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let buttonPoint = statusButton.convert(point, from: self)
         if statusButton.bounds.insetBy(dx: -10, dy: -10).contains(buttonPoint) {
@@ -173,7 +168,6 @@ final class TodoListTableViewCell: UITableViewCell {
 }
 
 private extension TodoListTableViewCell {
-    /// Расставляем элементы ячейки согласно макету
     func setupLayout() {
         contentView.addSubview(statusButton)
         contentView.addSubview(textStack)
@@ -198,7 +192,6 @@ private extension TodoListTableViewCell {
     }
 
     @objc
-    /// Вызываем колбэк переключения статуса
     func handleStatusTap() {
         onToggleStatus?()
     }

@@ -64,7 +64,6 @@ extension AVAudioEngine: AudioEngineProtocol {
     var inputNodeWrapper: AudioInputNodeProtocol { inputNode }
 }
 
-/// Экран списка задач с кастомной версткой под макет
 final class TodoListViewController: UIViewController {
     var presenter: TodoListPresenterProtocol!
 
@@ -269,9 +268,7 @@ final class TodoListViewController: UIViewController {
     }
 }
 
-// Разметка экрана и базовые ограничения
 private extension TodoListViewController {
-    /// Собираем основные элементы интерфейса и подключаем жесты
     func setupLayout() {
         view.backgroundColor = .appBlack
         view.addGestureRecognizer(dismissKeyboardTap)
@@ -284,7 +281,6 @@ private extension TodoListViewController {
         setupActivityIndicator()
     }
 
-    /// Верхний заголовок списка
     func setupHeader() {
         view.addSubview(titleLabel)
         NSLayoutConstraint.activate([
@@ -294,7 +290,6 @@ private extension TodoListViewController {
         ])
     }
 
-    /// Контейнер поиска с иконкой и кнопкой голосового ввода
     func setupSearch() {
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextDidChange(_:)), for: .editingChanged)
@@ -329,7 +324,6 @@ private extension TodoListViewController {
         voiceButton.addTarget(self, action: #selector(voiceButtonTapped), for: .touchUpInside)
     }
 
-    /// Настраиваем таблицу задач и pull-to-refresh
     func setupTableView() {
         tableView.register(TodoListTableViewCell.self, forCellReuseIdentifier: TodoListTableViewCell.reuseIdentifier)
         tableView.dataSource = self
@@ -351,7 +345,6 @@ private extension TodoListViewController {
         ])
     }
 
-    /// Показываем текст вместо таблицы, если список пуст
     func setupEmptyState() {
         view.addSubview(emptyStateLabel)
         NSLayoutConstraint.activate([
@@ -361,7 +354,6 @@ private extension TodoListViewController {
         ])
     }
 
-    /// Создаем градиентный фейд под таблицей, чтобы кнопка выглядела встроенно
     func setupBottomFade() {
         view.addSubview(bottomFadeView)
         bottomFadeLayer.colors = [
@@ -381,7 +373,6 @@ private extension TodoListViewController {
         ])
     }
 
-    /// Настраиваем нижнюю панель с кнопкой добавления и счётчиком задач
     func setupBottomBar() {
         view.addSubview(bottomBar)
         bottomBar.contentView.addSubview(bottomBarSeparator)
@@ -426,7 +417,6 @@ private extension TodoListViewController {
         updateTasksCount()
     }
 
-    /// Центрируем индикатор загрузки по экрану
     func setupActivityIndicator() {
         view.addSubview(activityIndicator)
         NSLayoutConstraint.activate([
@@ -435,7 +425,6 @@ private extension TodoListViewController {
         ])
     }
 
-    /// Пересчитываем отступы и высоту панели при смене safe area
     func updateBottomAreaLayoutIfNeeded() {
         let safeBottom = view.safeAreaInsets.bottom
         let desiredHeight = 56 + safeBottom
@@ -469,7 +458,6 @@ private extension TodoListViewController {
     }
 }
 
-// Экранируем ответы презентера и обновляем UI
 extension TodoListViewController: TodoListViewProtocol {
     func setNavigationTitle(_ title: String) {
         titleLabel.text = title
@@ -553,7 +541,6 @@ extension TodoListViewController: TodoListViewProtocol {
     }
 }
 
-// Источник данных таблицы задач
 extension TodoListViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         viewModels.count
@@ -630,7 +617,6 @@ extension TodoListViewController: UITableViewDataSource {
     }
 }
 
-// Делегат таблицы: выбранные строки, свайпы и жесты
 extension TodoListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if suppressSelectionForRow == indexPath {
@@ -661,7 +647,6 @@ extension TodoListViewController: UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, performAction action: Selector, forRowAt indexPath: IndexPath, withSender sender: Any?) {
-        // Intentionally left empty to disable system menu.
     }
 
     @available(iOS 13.0, *)
@@ -723,7 +708,6 @@ extension TodoListViewController {
 }
 #endif
 
-// Делегат текстового поля поиска
 extension TodoListViewController: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
@@ -732,7 +716,6 @@ extension TodoListViewController: UITextFieldDelegate {
     }
 }
 
-// Обработчики пользовательских действий и вспомогательные методы
 @MainActor
 extension TodoListViewController {
     @objc
@@ -782,7 +765,6 @@ extension TodoListViewController {
         }
     }
 
-    /// Запрашиваем разрешения и, если всё хорошо, стартуем диктовку
     @objc
     func requestSpeechAuthorizationAndStart() {
         let audioSession = audioSessionProvider()
@@ -809,7 +791,6 @@ extension TodoListViewController {
         }
     }
 
-    /// Полностью конфигурируем движок распознавания речи
     @objc
     func startVoiceRecognition() {
         if speechRecognizer == nil {
@@ -881,7 +862,6 @@ extension TodoListViewController {
         }
     }
 
-    /// Останавливаем запись и восстанавливаем текст в поиске
     @objc
     func stopVoiceRecognition() {
         guard isListening || recognitionTask != nil else { return }
@@ -898,7 +878,6 @@ extension TodoListViewController {
         do {
             try audioSessionProvider().setActive(false, options: .notifyOthersOnDeactivation)
         } catch {
-            // ignore
         }
         isListening = false
         updateVoiceButtonAppearance()
@@ -916,7 +895,6 @@ extension TodoListViewController {
         lastRecognizedText = finalText.isEmpty ? nil : finalText
     }
 
-    /// Синхронизируем визуальное состояние кнопки со статусом записи
     @objc
     func updateVoiceButtonAppearance() {
         UIView.animate(withDuration: 0.2) {
@@ -932,7 +910,6 @@ extension TodoListViewController {
         }
     }
 
-    /// Показываем alert с подсказкой про разрешения
     @objc
     func presentPermissionAlert() {
         let alert = UIAlertController(
@@ -944,7 +921,6 @@ extension TodoListViewController {
         present(alert, animated: true)
     }
 
-    /// Общее всплывающее окно для ошибок речевого ввода
     @objc
     func presentErrorAlert(message: String) {
         let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)

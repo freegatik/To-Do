@@ -7,27 +7,24 @@
 
 import Foundation
 
-// Простой клиент для загрузки задач
 protocol TodoAPIClientProtocol {
-    // Грузим задачи и отдаём в completion
     func fetchTodos(completion: @escaping (Result<[TodoDTO], Error>) -> Void)
 }
 
-// Реализация на `URLSession`
 final class TodoAPIClient: TodoAPIClientProtocol {
+    static let todosEndpointURL = URL(string: "https://dummyjson.com/todos")!
+
     private enum Constants {
-        static let todosURL: URL = URL(string: "https://dummyjson.com/todos")!
+        static let todosURL = TodoAPIClient.todosEndpointURL
         static let backgroundQueue = DispatchQueue(label: "io.todo.api", qos: .userInitiated, attributes: .concurrent)
     }
 
     private let session: URLSession
 
-    // Можно передать свою `URLSession` для тестов
     init(session: URLSession = .shared) {
         self.session = session
     }
 
-    // Грузим JSON на фоне, проверяем статус и декодируем
     func fetchTodos(completion: @escaping (Result<[TodoDTO], Error>) -> Void) {
         Constants.backgroundQueue.async {
             let task = self.session.dataTask(with: Constants.todosURL) { data, response, error in

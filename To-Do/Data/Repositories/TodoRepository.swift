@@ -8,31 +8,21 @@
 import Foundation
 import CoreData
 
-/// Простой протокол для работы с задачами
 protocol TodoRepositoryProtocol {
-    /// Тянем данные с сервера при первом запуске
     func loadInitialTodos(completion: @escaping (Result<[TodoItem], Error>) -> Void)
-    /// Получаем задачи из Core Data
     func fetchTodos(completion: @escaping (Result<[TodoItem], Error>) -> Void)
-    /// Создаём новую запись
     func createTodo(title: String, details: String?, completion: @escaping (Result<TodoItem, Error>) -> Void)
-    /// Обновляем существующую запись
     func updateTodo(_ item: TodoItem, completion: @escaping (Result<TodoItem, Error>) -> Void)
-    /// Меняем статус выполнено/нет
     func toggleCompletion(for item: TodoItem, completion: @escaping (Result<TodoItem, Error>) -> Void)
-    /// Удаляем задачу
     func deleteTodo(_ item: TodoItem, completion: @escaping (Result<Void, Error>) -> Void)
-    /// Ищем по названию или описанию
     func searchTodos(query: String, completion: @escaping (Result<[TodoItem], Error>) -> Void)
 }
 
-/// Возможные ошибки репозитория
 enum TodoRepositoryError: Error {
     case entityNotFound
     case invalidData
 }
 
-/// Реализация репозитория поверх Core Data и сети
 final class TodoRepository: TodoRepositoryProtocol {
     private enum Constants {
         static let initialLoadKey = "TodoRepository.initialLoad"
@@ -57,7 +47,6 @@ final class TodoRepository: TodoRepositoryProtocol {
     private let apiClient: TodoAPIClientProtocol
     private let userDefaults: UserDefaults
 
-    /// Передаём зависимости через init
     init(
         coreDataStack: CoreDataStackProtocol,
         apiClient: TodoAPIClientProtocol,
@@ -68,7 +57,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         self.userDefaults = userDefaults
     }
 
-    /// Проверяем, нужно ли грузить стартовые данные из API
     func loadInitialTodos(completion: @escaping (Result<[TodoItem], Error>) -> Void) {
         let isUITestEnvironment: Bool
 #if DEBUG
@@ -110,7 +98,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         }
     }
 
-    /// Берём задачи из Core Data по дате
     func fetchTodos(completion: @escaping (Result<[TodoItem], Error>) -> Void) {
 #if DEBUG
         if case let .fetchTodos(error)? = TodoRepository.debugFailure {
@@ -135,7 +122,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         }
     }
 
-    /// Создаём новую сущность и возвращаем её на главный поток
     func createTodo(title: String, details: String?, completion: @escaping (Result<TodoItem, Error>) -> Void) {
 #if DEBUG
         if case let .createTodo(error)? = TodoRepository.debugFailure {
@@ -173,7 +159,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         }
     }
 
-    /// Обновляем выбранную задачу, если она ещё есть
     func updateTodo(_ item: TodoItem, completion: @escaping (Result<TodoItem, Error>) -> Void) {
 #if DEBUG
         if case let .updateTodo(error)? = TodoRepository.debugFailure {
@@ -204,14 +189,12 @@ final class TodoRepository: TodoRepositoryProtocol {
         }
     }
 
-    /// Переключаем флаг выполнено и переиспользуем update
     func toggleCompletion(for item: TodoItem, completion: @escaping (Result<TodoItem, Error>) -> Void) {
         var updated = item
         updated.isCompleted.toggle()
         updateTodo(updated, completion: completion)
     }
 
-    /// Удаляем сущность и отвечаем в главном потоке
     func deleteTodo(_ item: TodoItem, completion: @escaping (Result<Void, Error>) -> Void) {
 #if DEBUG
         if case let .deleteTodo(error)? = TodoRepository.debugFailure {
@@ -237,7 +220,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         }
     }
 
-    /// Фильтруем задачи без блокировки UI
     func searchTodos(query: String, completion: @escaping (Result<[TodoItem], Error>) -> Void) {
 #if DEBUG
         if case let .searchTodos(error)? = TodoRepository.debugFailure {
@@ -280,7 +262,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         }
     }
 
-    /// Сохраняем ответ сервера в Core Data и ставим флаг загрузки
     private func saveInitialTodos(
         _ dtos: [TodoDTO],
         completion: @escaping (Result<[TodoItem], Error>) -> Void
@@ -314,7 +295,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         }
     }
 
-    /// Находим сущность по id
     private func fetchEntity(with id: Int64, in context: NSManagedObjectContext) throws -> TodoEntity? {
         let request = TodoEntity.fetchRequest()
         request.fetchLimit = 1
@@ -323,7 +303,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         return results.first
     }
 
-    /// Считаем следующий id на основе максимального
     private func nextIdentifier(in context: NSManagedObjectContext) throws -> Int64 {
         let request = TodoEntity.fetchRequest()
         request.fetchLimit = 1
@@ -336,7 +315,6 @@ final class TodoRepository: TodoRepositoryProtocol {
         return lastEntity.id + 1
     }
 
-    /// Считаем количество задач, чтобы понять, нужно ли импортировать
     private func countTodos(completion: @escaping (Int) -> Void) {
         let count = countTodosValue()
 #if DEBUG

@@ -7,17 +7,12 @@
 
 import CoreData
 
-// Простой протокол для работы с Core Data
 protocol CoreDataStackProtocol {
-    // Основной контекст для UI
     var viewContext: NSManagedObjectContext { get }
-    // Выполняем задачи на фоне
     func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void)
 }
 
-// Базовая реализация Core Data
 final class CoreDataStack: CoreDataStackProtocol {
-    // Синглтон для приложения
     static let shared = CoreDataStack()
 
     let container: NSPersistentContainer
@@ -43,7 +38,6 @@ final class CoreDataStack: CoreDataStackProtocol {
         container.viewContext
     }
 
-    /// Настраиваем контейнер и автослияние изменений
     init(
         container: NSPersistentContainer = NSPersistentContainer(name: "To_Do"),
         errorHandler: ((Error) -> Void)? = nil,
@@ -82,7 +76,6 @@ final class CoreDataStack: CoreDataStackProtocol {
         }
     }
 
-    /// Устанавливаем merge policy и выполняем блок
     func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void) {
         container.performBackgroundTask { context in
             context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy

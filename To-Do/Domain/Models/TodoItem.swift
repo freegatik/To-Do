@@ -7,7 +7,6 @@
 
 import Foundation
 
-/// Простая модель задачи без привязки к UI
 struct TodoItem: Identifiable, Equatable {
     let id: Int64
     var title: String
@@ -15,7 +14,6 @@ struct TodoItem: Identifiable, Equatable {
     let createdAt: Date
     var isCompleted: Bool
 
-    /// Создаём задачу вручную
     init(
         id: Int64,
         title: String,
@@ -30,7 +28,6 @@ struct TodoItem: Identifiable, Equatable {
         self.isCompleted = isCompleted
     }
 
-    /// Переводим DTO из сети в модель
     init(dto: TodoDTO, createdAt: Date = Date()) {
         self.init(
             id: Int64(dto.id),

@@ -7,7 +7,6 @@
 
 import UIKit
 
-// Точка входа, где собираем стартовый модуль
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 

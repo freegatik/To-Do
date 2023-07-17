@@ -128,7 +128,6 @@ struct TodoEditorInteractorTests {
     }
 }
 
-// Mocs
 
 /// Легковесный репозиторий, фиксирующий обращения интерактора
 private final class MockTodoRepository: TodoRepositoryProtocol {

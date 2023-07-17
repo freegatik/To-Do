@@ -198,7 +198,6 @@ final class TodoEditorPresenterTests: XCTestCase {
         XCTAssertEqual(view.errorMessages.last, "Test message")
     }
 
-    // Вспомогательные методы и заглушки презентера
 
     /// Формируем презентер с заранее подготовленными заглушками
     private func makePresenter(mode: TodoEditorMode) -> TodoEditorPresenter {

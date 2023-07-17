@@ -355,21 +355,18 @@ final class TodoEditorViewControllerTests: XCTestCase {
 
         let initialInset = sut.scrollViewForTests.contentInset.bottom
 
-        // Отправляем уведомление без frame (должно быть проигнорировано)
         NotificationCenter.default.post(name: UIResponder.keyboardWillShowNotification, object: nil, userInfo: [
             UIResponder.keyboardAnimationDurationUserInfoKey: NSNumber(value: 0.0)
         ])
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         XCTAssertEqual(sut.scrollViewForTests.contentInset.bottom, initialInset)
 
-        // Отправляем уведомление без duration (должно быть проигнорировано)
         NotificationCenter.default.post(name: UIResponder.keyboardWillShowNotification, object: nil, userInfo: [
             UIResponder.keyboardFrameEndUserInfoKey: NSValue(cgRect: CGRect(x: 0, y: 0, width: 320, height: 150))
         ])
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         XCTAssertEqual(sut.scrollViewForTests.contentInset.bottom, initialInset)
 
-        // Отправляем уведомление hide без duration (должно быть проигнорировано)
         NotificationCenter.default.post(name: UIResponder.keyboardWillHideNotification, object: nil, userInfo: [:])
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         XCTAssertEqual(sut.scrollViewForTests.contentInset.bottom, initialInset)
@@ -511,11 +508,9 @@ final class TodoEditorViewControllerTests: XCTestCase {
 
         let initialInset = sut.scrollViewForTests.contentInset.bottom
 
-        // Отправляем уведомление без userInfo
         NotificationCenter.default.post(name: UIResponder.keyboardWillShowNotification, object: nil, userInfo: nil)
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
 
-        // contentInset не должен измениться
         XCTAssertEqual(sut.scrollViewForTests.contentInset.bottom, initialInset)
 
         sut.viewWillDisappear(false)
@@ -529,13 +524,11 @@ final class TodoEditorViewControllerTests: XCTestCase {
 
         let initialInset = sut.scrollViewForTests.contentInset.bottom
 
-        // Отправляем уведомление только с duration, без frame
         NotificationCenter.default.post(name: UIResponder.keyboardWillShowNotification, object: nil, userInfo: [
             UIResponder.keyboardAnimationDurationUserInfoKey: NSNumber(value: 0.0)
         ])
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
 
-        // contentInset не должен измениться
         XCTAssertEqual(sut.scrollViewForTests.contentInset.bottom, initialInset)
 
         sut.viewWillDisappear(false)
@@ -547,7 +540,6 @@ final class TodoEditorViewControllerTests: XCTestCase {
         loadView(of: sut)
         sut.viewWillAppear(false)
 
-        // Сначала показываем клавиатуру
         let frame = CGRect(x: 0, y: 0, width: 320, height: 150)
         NotificationCenter.default.post(name: UIResponder.keyboardWillShowNotification, object: nil, userInfo: [
             UIResponder.keyboardFrameEndUserInfoKey: NSValue(cgRect: frame),
@@ -556,11 +548,9 @@ final class TodoEditorViewControllerTests: XCTestCase {
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         let insetAfterShow = sut.scrollViewForTests.contentInset.bottom
 
-        // Отправляем уведомление скрытия без duration
         NotificationCenter.default.post(name: UIResponder.keyboardWillHideNotification, object: nil, userInfo: nil)
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
 
-        // contentInset не должен измениться (остается как после показа)
         XCTAssertEqual(sut.scrollViewForTests.contentInset.bottom, insetAfterShow)
 
         sut.viewWillDisappear(false)
@@ -571,7 +561,6 @@ final class TodoEditorViewControllerTests: XCTestCase {
         let (sut, _) = makeSUT()
         loadView(of: sut)
 
-        // Не вызываем presentExitConfirmation, поэтому handlers не установлены
         let result = sut.triggerAlertActionHandlerForTests(.save)
 
         XCTAssertFalse(result)
@@ -582,16 +571,12 @@ final class TodoEditorViewControllerTests: XCTestCase {
         let (sut, _) = makeSUT()
         loadView(of: sut)
 
-        // Не вызываем presentExitConfirmation, поэтому lastExitConfirmationHandlers.save будет nil
         var saveCalled = false
         var discardCalled = false
 
-        // Устанавливаем только discard handler через presentExitConfirmation без canSave
         sut.presentExitConfirmation(canSave: false, onSave: { saveCalled = true }, onDiscard: { discardCalled = true })
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
 
-        // Теперь save handler должен быть nil, а discard handler установлен
-        // Вызываем performExitSelectionForTests(.save) - ничего не должно произойти
         sut.performExitSelectionForTests(.save)
 
         XCTAssertFalse(saveCalled)
@@ -603,20 +588,14 @@ final class TodoEditorViewControllerTests: XCTestCase {
         let (sut, _) = makeSUT()
         loadView(of: sut)
 
-        // Не вызываем presentExitConfirmation, поэтому lastExitConfirmationHandlers.discard будет nil
         var saveCalled = false
         var discardCalled = false
 
-        // Устанавливаем только save handler через presentExitConfirmation с canSave: true
-        // Но не устанавливаем discard handler явно
         sut.presentExitConfirmation(canSave: true, onSave: { saveCalled = true }, onDiscard: { discardCalled = true })
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
 
-        // Очищаем handlers, чтобы discard был nil
         sut.performExitSelectionForTests(.cancel)
 
-        // Теперь discard handler должен быть nil
-        // Вызываем performExitSelectionForTests(.discard) - ничего не должно произойти
         sut.performExitSelectionForTests(.discard)
 
         XCTAssertFalse(saveCalled)
@@ -629,14 +608,11 @@ final class TodoEditorViewControllerTests: XCTestCase {
         loadView(of: sut)
         sut.isUITestEnvironment = false
 
-        // Убеждаемся, что popoverFallbackHandler nil
         TodoEditorViewController.popoverFallbackHandler = nil
 
-        // Вызываем presentExitConfirmation - не должно быть краша
         sut.presentExitConfirmation(canSave: true, onSave: {}, onDiscard: {})
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
 
-        // Тест проходит, если не произошло краша
         XCTAssertNotNil(sut.presentedViewController)
     }
 
@@ -655,7 +631,6 @@ final class TodoEditorViewControllerTests: XCTestCase {
     }
 }
 
-// Тестовые заглушки и утилиты
 
 /// Упрощает поиск действий в UIAlertController
 private extension UIAlertController {

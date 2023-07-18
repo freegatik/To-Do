@@ -100,7 +100,6 @@ final class TodoContextMenuViewControllerTests: XCTestCase {
         sut.view.frame = frame
         sut.loadViewIfNeeded()
 
-        // Force layout to compute target size
         sut.view.layoutIfNeeded()
         sut.viewDidLayoutSubviews()
 
@@ -255,7 +254,6 @@ final class TodoContextMenuViewControllerTests: XCTestCase {
         XCTAssertNotNil(sut)
     }
 
-    // Вспомогательные методы для ожидания и доступа к элементам
 
     /// Создаёт экземпляр меню с указанными параметрами
     private func makeSUT(
@@ -292,7 +290,6 @@ final class TodoContextMenuViewControllerTests: XCTestCase {
     }
 }
 
-// Reflection-хелперы для доступа к приватным свойствам
 
 private extension TodoContextMenuViewController {
     /// Возвращает приватное свойство контроллера по имени

@@ -258,13 +258,11 @@ final class TodoListViewControllerTests: XCTestCase {
             XCTFail("Long press recognizer missing")
             return
         }
-        // Устанавливаем состояние, отличное от .began
         recognizer.setValue(UIGestureRecognizer.State.ended.rawValue, forKey: "state")
 
         let initialCount = presenter.didLongPressItemArguments.count
         sut.perform(NSSelectorFromString("handleLongPress:"), with: recognizer)
 
-        // Презентер не должен быть уведомлен
         XCTAssertEqual(presenter.didLongPressItemArguments.count, initialCount)
     }
 
@@ -272,13 +270,11 @@ final class TodoListViewControllerTests: XCTestCase {
     func testHandleLongPressIgnoresNonCellView() {
         let recognizer = UILongPressGestureRecognizer()
         recognizer.setValue(UIGestureRecognizer.State.began.rawValue, forKey: "state")
-        // Устанавливаем view, который не является UITableViewCell
         recognizer.setValue(UIView(), forKey: "view")
 
         let initialCount = presenter.didLongPressItemArguments.count
         sut.perform(NSSelectorFromString("handleLongPress:"), with: recognizer)
 
-        // Презентер не должен быть уведомлен
         XCTAssertEqual(presenter.didLongPressItemArguments.count, initialCount)
     }
 
@@ -296,14 +292,12 @@ final class TodoListViewControllerTests: XCTestCase {
         
         let recognizer = UILongPressGestureRecognizer()
         recognizer.setValue(UIGestureRecognizer.State.began.rawValue, forKey: "state")
-        // Создаем cell, который не находится в tableView
         let cell = UITableViewCell()
         recognizer.setValue(cell, forKey: "view")
 
         let initialCount = presenter.didLongPressItemArguments.count
         sut.perform(NSSelectorFromString("handleLongPress:"), with: recognizer)
 
-        // Презентер не должен быть уведомлен
         XCTAssertEqual(presenter.didLongPressItemArguments.count, initialCount)
     }
 
@@ -362,7 +356,6 @@ final class TodoListViewControllerTests: XCTestCase {
         sut.loadViewIfNeeded()
         sut.view.layoutIfNeeded()
         
-        // Устанавливаем правильное значение contentInset
         let safeBottom = sut.view.safeAreaInsets.bottom
         let desiredHeight = 56 + safeBottom
         var contentInset = sut.tableViewForTests.contentInset
@@ -371,10 +364,8 @@ final class TodoListViewControllerTests: XCTestCase {
         
         let initialBottom = sut.tableViewForTests.contentInset.bottom
         
-        // Вызываем updateBottomAreaLayoutIfNeeded
         sut.updateBottomAreaLayoutForTests()
         
-        // contentInset.bottom не должен измениться, так как уже правильный
         XCTAssertEqual(sut.tableViewForTests.contentInset.bottom, initialBottom)
     }
 
@@ -382,7 +373,6 @@ final class TodoListViewControllerTests: XCTestCase {
         sut.loadViewIfNeeded()
         sut.view.layoutIfNeeded()
         
-        // Устанавливаем правильное значение indicatorInsets
         let safeBottom = sut.view.safeAreaInsets.bottom
         let desiredHeight = 56 + safeBottom
         var indicatorInsets = sut.tableViewForTests.verticalScrollIndicatorInsets
@@ -391,10 +381,8 @@ final class TodoListViewControllerTests: XCTestCase {
         
         let initialBottom = sut.tableViewForTests.verticalScrollIndicatorInsets.bottom
         
-        // Вызываем updateBottomAreaLayoutIfNeeded
         sut.updateBottomAreaLayoutForTests()
         
-        // indicatorInsets.bottom не должен измениться, так как уже правильный
         XCTAssertEqual(sut.tableViewForTests.verticalScrollIndicatorInsets.bottom, initialBottom)
     }
 
@@ -1110,7 +1098,6 @@ final class TodoListViewControllerTests: XCTestCase {
         let regularCell = UITableViewCell()
         sut.tableView(sut.tableViewForTests, willDisplay: regularCell, forRowAt: IndexPath(row: 0, section: 0))
         
-        // Тест проходит, если не произошло краша
         XCTAssertTrue(regularCell is UITableViewCell)
     }
 
@@ -1126,13 +1113,10 @@ final class TodoListViewControllerTests: XCTestCase {
             return
         }
         
-        // Устанавливаем separator в скрытоe состояние перед тестом
         firstCell.setShowsSeparator(false)
         
         sut.tableView(sut.tableViewForTests, willDisplay: firstCell, forRowAt: IndexPath(row: 0, section: 0))
         
-        // Первая ячейка не последняя, поэтому separator должен быть виден
-        // Проверяем через reflection, что separatorView.isHidden = false
         let separatorView: UIView = try firstCell.cellElement(named: "separatorView")
         XCTAssertFalse(separatorView.isHidden)
     }
@@ -1149,12 +1133,10 @@ final class TodoListViewControllerTests: XCTestCase {
             return
         }
         
-        // Устанавливаем separator в видимое состояние перед тестом
         lastCell.setShowsSeparator(true)
         
         sut.tableView(sut.tableViewForTests, willDisplay: lastCell, forRowAt: IndexPath(row: 1, section: 0))
         
-        // Последняя ячейка, separator должен быть скрыт
         let separatorView: UIView = try lastCell.cellElement(named: "separatorView")
         XCTAssertTrue(separatorView.isHidden)
     }
@@ -1201,7 +1183,6 @@ final class TodoListViewControllerTests: XCTestCase {
         
         sut.showContextMenu(for: viewModel)
         
-        // Контроллер не должен измениться
         XCTAssertTrue(sut.contextMenuControllerForTests === existingController)
     }
 
@@ -1221,16 +1202,13 @@ final class TodoListViewControllerTests: XCTestCase {
             return
         }
         
-        // Добавляем recognizer вручную
         let existingRecognizer = UILongPressGestureRecognizer()
         cell.addGestureRecognizer(existingRecognizer)
         
         let initialRecognizerCount = cell.gestureRecognizers?.count ?? 0
         
-        // Вызываем attachLongPress через willDisplay
         sut.tableView(sut.tableViewForTests, willDisplay: cell, forRowAt: IndexPath(row: 0, section: 0))
         
-        // Количество recognizers не должно измениться
         XCTAssertEqual(cell.gestureRecognizers?.count, initialRecognizerCount)
     }
 
@@ -1244,7 +1222,6 @@ final class TodoListViewControllerTests: XCTestCase {
         
         sut.stopVoiceRecognition()
         
-        // audioEngine.stop не должен быть вызван
         XCTAssertFalse(audioEngine.stopCalled)
     }
 
@@ -1255,9 +1232,7 @@ final class TodoListViewControllerTests: XCTestCase {
         
         sut.handleRecognizedText("   ")
         
-        // Текст не должен измениться
         XCTAssertEqual(sut.searchTextFieldForTests.text, initialText)
-        // Презентер не должен быть уведомлен
         XCTAssertEqual(presenter.updateSearchQueryArguments.count, initialQueryCount)
     }
 
@@ -1268,9 +1243,7 @@ final class TodoListViewControllerTests: XCTestCase {
         
         sut.handleRecognizedText("")
         
-        // Текст не должен измениться
         XCTAssertEqual(sut.searchTextFieldForTests.text, initialText)
-        // Презентер не должен быть уведомлен
         XCTAssertEqual(presenter.updateSearchQueryArguments.count, initialQueryCount)
     }
 
@@ -1294,10 +1267,8 @@ final class TodoListViewControllerTests: XCTestCase {
         sut.startVoiceRecognition()
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        // Устанавливаем recognitionRequest в nil после установки tap
         sut.setRecognitionRequestForTests(nil)
 
-        // Симулируем вызов closure с buffer
         let format = inputNode.outputFormat(forBus: 0)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1024) else {
             XCTFail("Failed to allocate buffer")
@@ -1305,15 +1276,12 @@ final class TodoListViewControllerTests: XCTestCase {
         }
         buffer.frameLength = 1
 
-        // Вызываем installTapHandler - не должно быть краша, даже если recognitionRequest nil
         inputNode.installTapHandler?(buffer, AVAudioTime(hostTime: 0))
 
-        // Тест проходит, если не произошло краша
         XCTAssertTrue(inputNode.installTapCalled)
     }
 
     func testRequestRecordPermissionClosureHandlesDeallocation() {
-        // Создаем отдельный контроллер для теста deallocation
         var testController: TodoListViewController? = TodoListViewController()
         let testPresenter = MockPresenter()
         testController?.presenter = testPresenter
@@ -1326,24 +1294,19 @@ final class TodoListViewControllerTests: XCTestCase {
         let session = MockAudioSession()
         testController?.audioSessionProvider = { session }
 
-        // Создаем слабую ссылку на контроллер
         weak var weakController: TodoListViewController? = testController
 
-        // Вызываем requestSpeechAuthorizationAndStart
         testController?.requestSpeechAuthorizationAndStart()
 
-        // Освобождаем контроллер
         testController = nil
         testWindow.isHidden = true
         testWindow.rootViewController = nil
         
-        // Даем время на deallocation
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         session.completePermission(granted: true)
     }
 
     func testRecognitionTaskFactoryClosureHandlesDeallocation() async throws {
-        // Создаем отдельный контроллер для теста deallocation
         var testController: TodoListViewController? = TodoListViewController()
         let testPresenter = MockPresenter()
         testController?.presenter = testPresenter
@@ -1369,23 +1332,19 @@ final class TodoListViewControllerTests: XCTestCase {
         let request = MockRecognitionRequest()
         testController?.recognitionRequestFactory = { request }
 
-        // Захватываем handler из recognitionTaskFactory
         var capturedHandler: ((String?, Bool, Error?) -> Void)?
         testController?.recognitionTaskFactory = { recognizer, request, handler in
             capturedHandler = handler
             return recognizer.startRecognitionTask(with: request) { _, _ in }
         }
 
-        // Начинаем голосовое распознавание
         testController?.startVoiceRecognition()
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        // Освобождаем контроллер
         testController = nil
         testWindow.isHidden = true
         testWindow.rootViewController = nil
         
-        // Даем время на deallocation
         try await Task.sleep(nanoseconds: 50_000_000)
         capturedHandler?("Test", false, nil)
     }
@@ -1487,7 +1446,6 @@ private extension UIViewController {
     }
 }
 
-// Тестовые заглушки и вспомогательные методы
 
 @MainActor
 /// Презентер-заглушка, фиксирующая взаимодействия контроллера
@@ -1560,7 +1518,6 @@ private extension TodoListViewController {
     }
 }
 
-// Заглушки, имитирующие голосовое распознавание и аудио
 
 /// Имитация AVAudioSession для тестирования сценариев голосового ввода
 private final class MockAudioSession: NSObject, AudioSessionProtocol {

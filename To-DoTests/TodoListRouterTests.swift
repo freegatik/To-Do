@@ -58,7 +58,6 @@ final class TodoListRouterTests: XCTestCase {
     }
 }
 
-// Тестовые заглушки и вспомогательные классы
 
 /// Минимальная реализация репозитория для тестов роутера
 private final class StubTodoRepository: TodoRepositoryProtocol {

@@ -193,7 +193,6 @@ final class TodoListInteractorTests: XCTestCase {
     }
 }
 
-// Вспомогательные заглушки для тестов интерактора
 
 /// Репозиторий, фиксирующий обращения интерактора
 private final class MockRepository: TodoRepositoryProtocol {

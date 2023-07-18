@@ -183,21 +183,17 @@ final class TodoListTableViewCellTests: XCTestCase {
         cell.layoutIfNeeded()
         let statusButton: UIButton = try cell.element(named: "statusButton")
         
-        // Точка внутри bounds ячейки, но далеко от кнопки (справа от кнопки)
-        // Кнопка находится слева (leadingAnchor + 20), поэтому точка справа не должна попадать в расширенную область
         let farPoint = CGPoint(
             x: cell.bounds.width - 10,  // Правая часть ячейки
             y: cell.bounds.midY
         )
         let hitView = cell.hitTest(farPoint, with: nil)
         
-        // Должен вернуться результат super.hitTest (обычно contentView или сама ячейка)
         XCTAssertNotNil(hitView)
         XCTAssertFalse(hitView === statusButton, "Points far from button should not hit the button")
     }
 }
 
-// Вспомогательный доступ к приватным свойствам ячейки
 
 private extension TodoListTableViewCell {
     func element<T>(named name: String) throws -> T {

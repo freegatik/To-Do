@@ -163,7 +163,6 @@ struct TodoListPresenterTests {
         let router = MockTodoListRouter()
         let presenter = TodoListPresenter(view: view, interactor: interactor, router: router)
 
-        // Не вызываем didLongPressItem, поэтому highlightedItem остается nil
         let initialRouterCallCount = router.presentEditorCallCount
         let initialShareCallCount = view.shareCallCount
         let initialDeleteCallCount = interactor.deletedItems.count
@@ -172,7 +171,6 @@ struct TodoListPresenterTests {
         presenter.handleContextAction(.share)
         presenter.handleContextAction(.delete)
 
-        // Никакие действия не должны быть вызваны
         #expect(router.presentEditorCallCount == initialRouterCallCount)
         #expect(view.shareCallCount == initialShareCallCount)
         #expect(interactor.deletedItems.count == initialDeleteCallCount)

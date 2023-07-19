@@ -22,8 +22,6 @@ final class To_DoUITestsLaunchTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        // Добавьте действия, которые нужно выполнить после запуска приложения и перед созданием скриншота,
-        // например, авторизацию тестового пользователя или переход к нужному экрану.
 
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Launch Screen"

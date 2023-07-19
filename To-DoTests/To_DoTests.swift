@@ -11,7 +11,6 @@ import Testing
 struct To_DoTests {
 
     @Test func example() async throws {
-        // Напишите тест здесь и используйте `#expect(...)`, чтобы проверять ожидаемые условия.
     }
 
 }

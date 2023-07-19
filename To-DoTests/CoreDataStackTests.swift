@@ -121,15 +121,12 @@ final class CoreDataStackTests: XCTestCase {
 #if DEBUG
         let originalAction = CoreDataStack.assertionFailureAction
         
-        // Устанавливаем кастомный action
         CoreDataStack.assertionFailureAction = { _ in }
         
-        // Проверяем, что reset восстанавливает default action
         CoreDataStack.resetAssertionFailureAction()
         
         XCTAssertNotNil(CoreDataStack.assertionFailureAction)
         
-        // Восстанавливаем original action
         CoreDataStack.assertionFailureAction = originalAction
         CoreDataStack.resetAssertionFailureAction()
 #endif
@@ -159,7 +156,6 @@ final class CoreDataStackTests: XCTestCase {
         
         wait(for: [expectation], timeout: 1.0)
         XCTAssertNotNil(executedContext)
-        // Проверяем, что mergePolicy установлен (в performBackgroundTask он устанавливается)
         XCTAssertNotNil(executedContext?.mergePolicy)
     }
 }

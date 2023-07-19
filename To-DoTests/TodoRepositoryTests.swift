@@ -104,7 +104,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await loadInitialTodos(repository)
             XCTFail("Expected loadInitialTodos to throw")
         } catch RepositoryTestError.failure {
-            // success
         }
         XCTAssertEqual(apiClient.fetchCallCount, 1)
     }
@@ -165,7 +164,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await fetchTodos(repository)
             XCTFail("Expected fetchTodos to throw")
         } catch RepositoryTestError.failure {
-            // expected
         }
     }
 
@@ -179,7 +177,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await createTodo(repository, title: "Fail", details: nil)
             XCTFail("Expected createTodo to throw")
         } catch RepositoryTestError.failure {
-            // expected
         }
     }
 
@@ -194,7 +191,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await updateTodo(repository, item: item)
             XCTFail("Expected updateTodo to throw")
         } catch RepositoryTestError.failure {
-            // expected
         }
     }
 
@@ -209,7 +205,6 @@ final class TodoRepositoryTests: XCTestCase {
             try await deleteTodo(repository, item: item)
             XCTFail("Expected deleteTodo to throw")
         } catch RepositoryTestError.failure {
-            // expected
         }
     }
 
@@ -223,7 +218,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await searchTodos(repository, query: "query")
             XCTFail("Expected searchTodos to throw")
         } catch RepositoryTestError.failure {
-            // expected
         }
     }
 
@@ -236,7 +230,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await fetchTodos(repository)
             XCTFail("Expected fetchTodos to throw")
         } catch RepositoryTestError.failure {
-            // expected
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -251,7 +244,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await createTodo(repository, title: "Failing", details: nil)
             XCTFail("Expected createTodo to throw")
         } catch RepositoryTestError.failure {
-            // expected
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -351,16 +343,12 @@ final class TodoRepositoryTests: XCTestCase {
             TodoDTO(id: 1, todo: "Test", completed: false, userId: 1)
         ])
 
-        // Устанавливаем ошибку для countTodosValue
         TodoRepository.debugCountTodosError = RepositoryTestError.failure
 
-        // Вызываем loadInitialTodos, который использует countTodosValue
         let items = try await loadInitialTodos(repository)
 
-        // Ошибка должна быть обработана, и count должен вернуть 0, что приведет к загрузке из API
         XCTAssertEqual(items.count, 1)
         XCTAssertEqual(apiClient.fetchCallCount, 1)
-        // debugCountTodosError должен быть очищен после использования
         XCTAssertNil(TodoRepository.debugCountTodosError)
 #endif
     }
@@ -377,7 +365,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await loadInitialTodos(repository)
             XCTFail("Expected loadInitialTodos to throw")
         } catch RepositoryTestError.failure {
-            // expected
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -393,7 +380,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await searchTodos(repository, query: "anything")
             XCTFail("Expected searchTodos to throw")
         } catch RepositoryTestError.failure {
-            // expected
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -529,7 +515,6 @@ final class TodoRepositoryTests: XCTestCase {
             _ = try await createTodo(repository, title: "Broken", details: nil)
             XCTFail("Expected createTodo to throw")
         } catch RepositoryTestError.failure {
-            // expected
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -600,7 +585,6 @@ final class TodoRepositoryTests: XCTestCase {
     }
 }
 
-// Вспомогательные методы для подготовки тестовых сценариев
 
 /// Создаём репозиторий и уникальный suite UserDefaults для изоляции тестов
 private func makeRepository(stack: CoreDataStackProtocol = TestCoreDataStack()) async -> (TodoRepository, MockTodoAPIClient, UserDefaults) {
@@ -696,7 +680,6 @@ private func toggleCompletion(
     }
 }
 
-// Заглушки и имитации ошибок для тестов репозитория
 
 private final class FailingCoreDataStack: CoreDataStackProtocol {
     private let base: TestCoreDataStack

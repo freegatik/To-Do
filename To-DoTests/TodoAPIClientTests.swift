@@ -99,19 +99,14 @@ final class TodoAPIClientTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
-    /// Проверяем, что URL константа инициализируется корректно
+    /// URL эндпоинта совпадает с контрактом DummyJSON (остальные тесты класса проверяют `makeClient` и сеть)
     func testTodosURLConstantIsValid() {
-        // Проверяем, что URL валидный и не вызывает preconditionFailure
-        let client = makeClient()
-        // Если URL невалидный, preconditionFailure вызовется при инициализации Constants
-        // Но так как URL валидный, мы просто проверяем, что клиент создался
-        XCTAssertNotNil(client)
+        XCTAssertEqual(TodoAPIClient.todosEndpointURL.absoluteString, "https://dummyjson.com/todos")
     }
 
     /// Когда response не является HTTPURLResponse, возвращается badServerResponse
     func testFetchTodosWithNonHTTPResponseReturnsBadServerResponse() {
         let expectation = expectation(description: "completion")
-        // Используем обычный URLResponse вместо HTTPURLResponse
         URLProtocolMock.response = URLResponse(url: TodoAPIClientTests.testURL, mimeType: nil, expectedContentLength: 0, textEncodingName: nil)
         URLProtocolMock.testData = Data()
 
@@ -155,7 +150,7 @@ final class TodoAPIClientTests: XCTestCase {
         return TodoAPIClient(session: session)
     }
 
-    private static let testURL = URL(string: "https://dummyjson.com/todos")!
+    private static let testURL = TodoAPIClient.todosEndpointURL
 }
 
 /// Заглушка URLProtocol, позволяющая эмулировать ответы сервера

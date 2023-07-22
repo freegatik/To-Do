@@ -1,0 +1,186 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+  IPHONEOS_DEPLOYMENT_TARGET: "15.6"
+
+jobs:
+  swiftlint:
+    name: SwiftLint
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          if [[ -d "/Applications/Xcode_16.2.app" ]]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          else
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
+          xcodebuild -version
+
+      - name: Install SwiftLint
+        run: |
+          if ! command -v swiftlint >/dev/null 2>&1; then
+            brew install swiftlint
+          fi
+          swiftlint version
+
+      - name: Lint
+        run: |
+          set -euo pipefail
+          cd "${GITHUB_WORKSPACE}"
+          swiftlint lint --reporter github-actions-logging
+
+  build:
+    name: Build (simulator)
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          if [[ -d "/Applications/Xcode_16.2.app" ]]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          else
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
+          xcodebuild -version
+
+      - name: Prepare Xcode (first launch)
+        run: |
+          sudo xcodebuild -runFirstLaunch || true
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project To-Do.xcodeproj \
+            -scheme To-Do \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            EXCLUDED_ARCHS=x86_64 \
+            ONLY_ACTIVE_ARCH=YES
+
+  analyze:
+    name: Static analysis (clang)
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          if [[ -d "/Applications/Xcode_16.2.app" ]]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          else
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
+
+      - name: Analyze
+        run: |
+          set -euo pipefail
+          xcodebuild analyze \
+            -project To-Do.xcodeproj \
+            -scheme To-Do \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            EXCLUDED_ARCHS=x86_64 \
+            ONLY_ACTIVE_ARCH=YES
+
+  test:
+    name: Tests + coverage (unit + UI)
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          if [[ -d "/Applications/Xcode_16.2.app" ]]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          else
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
+          xcodebuild -version
+
+      - name: Prepare Xcode and iOS Simulator runtime
+        run: |
+          chmod +x .github/scripts/prepare-ios-ci.sh
+          .github/scripts/prepare-ios-ci.sh
+        timeout-minutes: 50
+
+      - name: Build and test with code coverage
+        env:
+          IPHONEOS_DEPLOYMENT_TARGET: "15.6"
+        run: |
+          set -euo pipefail
+          chmod +x .github/scripts/ensure-ci-simulator.sh
+          chmod +x .github/scripts/xcode-sim-destination.sh
+          echo "=== simctl: iOS runtimes ==="
+          xcrun simctl list runtimes | grep -i ios || true
+          SIM_UDID="$(.github/scripts/ensure-ci-simulator.sh)"
+          DEST="$(.github/scripts/xcode-sim-destination.sh To-Do.xcodeproj To-Do "${SIM_UDID}")"
+          echo "Destination: ${DEST}"
+          rm -rf TestResults.xcresult
+          xcodebuild test \
+            -project To-Do.xcodeproj \
+            -scheme To-Do \
+            -sdk iphonesimulator \
+            -destination "${DEST}" \
+            -maximum-parallel-testing-workers 1 \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults.xcresult \
+            EXCLUDED_ARCHS=x86_64 \
+            ONLY_ACTIVE_ARCH=YES
+
+      - name: Coverage report (targets)
+        if: success() || failure()
+        run: |
+          set -euo pipefail
+          if [[ -d TestResults.xcresult ]]; then
+            echo "=== xccov report (targets) ==="
+            xcrun xccov view --report --only-targets TestResults.xcresult | tee coverage-targets.txt || true
+            echo "=== xccov report (summary) ==="
+            xcrun xccov view --report TestResults.xcresult | head -120 || true
+          else
+            echo "No TestResults.xcresult bundle found."
+          fi
+
+      - name: Upload test bundle and coverage text
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: |
+            TestResults.xcresult
+            coverage-targets.txt
+          if-no-files-found: ignore
+
+      - name: Codecov
+        if: success() && secrets.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          xcode: true
+          xcode_package_path: TestResults.xcresult

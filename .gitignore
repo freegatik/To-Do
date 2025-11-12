@@ -1,1 +1,57 @@
-/todos.json
+# macOS artifacts
+.DS_Store
+
+# Xcode & derived data
+DerivedData/
+build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.moved-aside
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# Coverage and reports
+*.xccovreport
+*.xccovarchive
+coverage/
+coverage_export/
+coverage-result.xcresult
+coverage_export.*
+reports/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Logs and temp files
+*.log
+
+# Archives & distribution
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Configuration & secrets
+.env
+.env.*
+*.p12
+*.mobileprovision
+*.keychain
+*.pem
+*.crt
+*.cer
+Secrets.xcconfig
+Config/Secrets*.plist
+
+# Local project data
+*.json
+*.txt

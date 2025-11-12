@@ -16,11 +16,8 @@ struct TodoContextMenuViewModel {
 }
 
 enum TodoContextAction {
-    /// Открываем редактор
     case edit
-    /// Передаём данные в общий шэринг
     case share
-    /// Удаляем задачу
     case delete
 }
 

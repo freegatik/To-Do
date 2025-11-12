@@ -42,9 +42,13 @@ final class TodoListRouter: TodoListRouterProtocol {
     /// Показываем редактор задачи внутри навигации
     func presentEditor(mode: TodoEditorMode, output: TodoEditorModuleOutput) {
         let editor = TodoEditorRouter.buildModule(mode: mode, repository: repository, output: output)
-        let navigation = UINavigationController(rootViewController: editor)
-        navigation.modalPresentationStyle = .pageSheet
-        viewController?.present(navigation, animated: true, completion: nil)
+        if let navigationController = viewController?.navigationController {
+            navigationController.pushViewController(editor, animated: true)
+        } else {
+            let navigation = UINavigationController(rootViewController: editor)
+            navigation.modalPresentationStyle = .fullScreen
+            viewController?.present(navigation, animated: true, completion: nil)
+        }
     }
 }
 

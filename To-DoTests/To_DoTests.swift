@@ -7,6 +7,7 @@
 
 import Testing
 
+/// Заготовка для примеров тестов верхнего уровня
 struct To_DoTests {
 
     @Test func example() async throws {

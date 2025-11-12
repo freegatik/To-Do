@@ -26,7 +26,6 @@ struct TodoEditorViewModel {
     let details: String
     let isCompleted: Bool
     let createdAtText: String?
-    let actionButtonTitle: String
 }
 
 /// Обратная связь для модуля списка после закрытия редактора.

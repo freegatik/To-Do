@@ -10,34 +10,19 @@ import UIKit
 /// Экран создания и редактирования задачи
 final class TodoEditorViewController: UIViewController {
     var presenter: TodoEditorPresenterProtocol!
+    var isUITestEnvironment = ProcessInfo.processInfo.arguments.contains("--uitest")
 
     private var isCompleted = false
 
-    private let topBar = UIView()
     private let backButton: UIButton = {
         var configuration = UIButton.Configuration.plain()
-        configuration.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
-        configuration.imagePlacement = .leading
-        configuration.imagePadding = 4
-        configuration.title = "Назад"
-        configuration.image = UIImage(systemName: "chevron.left", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold))
+        configuration.image = UIImage(systemName: "chevron.left")
+        configuration.imagePadding = 6
         configuration.baseForegroundColor = .appYellow
+        configuration.attributedTitle = AttributedString("Назад", attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 17)]))
         let button = UIButton(configuration: configuration, primaryAction: nil)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.titleLabel?.font = .systemFont(ofSize: 17)
         button.accessibilityIdentifier = "editor.back"
-        return button
-    }()
-
-    private let saveButton: UIButton = {
-        var configuration = UIButton.Configuration.plain()
-        configuration.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
-        configuration.title = "Сохранить"
-        configuration.baseForegroundColor = .appYellow
-        let button = UIButton(configuration: configuration, primaryAction: nil)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
-        button.accessibilityIdentifier = "editor.save"
         return button
     }()
 
@@ -57,55 +42,67 @@ final class TodoEditorViewController: UIViewController {
 
     private let titleTextView: UITextView = {
         let textView = UITextView()
+        textView.translatesAutoresizingMaskIntoConstraints = false
         textView.font = .systemFont(ofSize: 34, weight: .bold)
         textView.textColor = .appWhite
         textView.tintColor = .appYellow
+        textView.keyboardAppearance = .dark
         textView.backgroundColor = .clear
         textView.textContainerInset = .zero
         textView.textContainer.lineFragmentPadding = 0
         textView.isScrollEnabled = false
-        textView.translatesAutoresizingMaskIntoConstraints = false
         textView.accessibilityIdentifier = "editor.title"
         return textView
     }()
 
     private let titlePlaceholder: UILabel = {
         let label = UILabel()
-        label.text = "Название"
-        label.font = .systemFont(ofSize: 34, weight: .bold)
-        label.textColor = UIColor.appWhite.withAlphaComponent(0.25)
         label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = "Название задачи"
+        label.font = .systemFont(ofSize: 34, weight: .bold)
+        label.textColor = UIColor.appWhite.withAlphaComponent(0.2)
         return label
     }()
 
     private let dateLabel: UILabel = {
         let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
         label.font = .systemFont(ofSize: 12)
         label.textColor = UIColor.appWhite.withAlphaComponent(0.5)
+        return label
+    }()
+
+    private let statusBadge: UILabel = {
+        let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .appYellow
+        label.text = "Выполнено"
+        label.isHidden = true
         return label
     }()
 
     private let bodyTextView: UITextView = {
         let textView = UITextView()
+        textView.translatesAutoresizingMaskIntoConstraints = false
         textView.font = .systemFont(ofSize: 16)
         textView.textColor = .appWhite
         textView.tintColor = .appYellow
+        textView.keyboardAppearance = .dark
         textView.backgroundColor = .clear
         textView.textContainerInset = .zero
         textView.textContainer.lineFragmentPadding = 0
         textView.isScrollEnabled = false
-        textView.translatesAutoresizingMaskIntoConstraints = false
         textView.accessibilityIdentifier = "editor.body"
         return textView
     }()
 
     private let bodyPlaceholder: UILabel = {
         let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "Описание"
         label.font = .systemFont(ofSize: 16)
         label.textColor = UIColor.appWhite.withAlphaComponent(0.3)
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
@@ -118,11 +115,18 @@ final class TodoEditorViewController: UIViewController {
 
     private var titleHeightConstraint: NSLayoutConstraint!
     private var bodyHeightConstraint: NSLayoutConstraint!
+    private var bodyTopToStatusConstraint: NSLayoutConstraint!
+    private var bodyTopToDateConstraint: NSLayoutConstraint!
     private var keyboardTokens: [NSObjectProtocol] = []
+
+#if DEBUG
+    private(set) var lastExitConfirmationHandlers: (save: (() -> Void)?, discard: (() -> Void)?) = (nil, nil)
+    static var popoverFallbackHandler: ((UIAlertController, UIButton) -> Void)?
+#endif
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
+        setupLayout()
         presenter.viewDidLoad()
     }
 
@@ -135,53 +139,43 @@ final class TodoEditorViewController: UIViewController {
         super.viewWillDisappear(animated)
         unregisterKeyboardNotifications()
     }
+
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        .lightContent
+    }
 }
 
-// MARK: - Настройка
-
+// Собираем экран редактора и расставляем ограничения
 private extension TodoEditorViewController {
-    func setupUI() {
+    /// Формируем UI из элементов макета и подключаем жесты
+    func setupLayout() {
         view.backgroundColor = .appBlack
         navigationController?.setNavigationBarHidden(true, animated: false)
 
-        topBar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(topBar)
-        topBar.addSubview(backButton)
-        topBar.addSubview(saveButton)
-        backButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
-        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        titleTextView.delegate = self
+        bodyTextView.delegate = self
 
+        backButton.addTarget(self, action: #selector(backButtonTapped), for: .touchUpInside)
+
+        view.addSubview(backButton)
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
         contentView.addSubview(titleTextView)
         contentView.addSubview(titlePlaceholder)
         contentView.addSubview(dateLabel)
+        contentView.addSubview(statusBadge)
         contentView.addSubview(bodyTextView)
         contentView.addSubview(bodyPlaceholder)
         view.addSubview(activityIndicator)
 
-        titleTextView.delegate = self
-        bodyTextView.delegate = self
-
         NSLayoutConstraint.activate([
-            topBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            topBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            topBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            topBar.heightAnchor.constraint(equalToConstant: 50)
+            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            backButton.heightAnchor.constraint(equalToConstant: 44)
         ])
 
         NSLayoutConstraint.activate([
-            backButton.leadingAnchor.constraint(equalTo: topBar.leadingAnchor, constant: 8),
-            backButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor)
-        ])
-
-        NSLayoutConstraint.activate([
-            saveButton.trailingAnchor.constraint(equalTo: topBar.trailingAnchor, constant: -12),
-            saveButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor)
-        ])
-
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: topBar.bottomAnchor, constant: 12),
+            scrollView.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: 12),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -208,25 +202,33 @@ private extension TodoEditorViewController {
 
         NSLayoutConstraint.activate([
             titlePlaceholder.leadingAnchor.constraint(equalTo: titleTextView.leadingAnchor),
-            titlePlaceholder.topAnchor.constraint(equalTo: titleTextView.topAnchor, constant: 4)
+            titlePlaceholder.topAnchor.constraint(equalTo: titleTextView.topAnchor, constant: 2)
         ])
 
         NSLayoutConstraint.activate([
-            dateLabel.topAnchor.constraint(equalTo: titleTextView.bottomAnchor, constant: 8),
+            dateLabel.topAnchor.constraint(equalTo: titleTextView.bottomAnchor, constant: 12),
             dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor)
         ])
 
         NSLayoutConstraint.activate([
-            bodyTextView.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 16),
+            statusBadge.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 6),
+            statusBadge.leadingAnchor.constraint(equalTo: contentView.leadingAnchor)
+        ])
+
+        bodyTopToStatusConstraint = bodyTextView.topAnchor.constraint(equalTo: statusBadge.bottomAnchor, constant: 16)
+        bodyTopToDateConstraint = bodyTextView.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 16)
+        bodyTopToStatusConstraint.isActive = true
+
+        NSLayoutConstraint.activate([
             bodyTextView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             bodyTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             bodyTextView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
 
         NSLayoutConstraint.activate([
-            bodyPlaceholder.topAnchor.constraint(equalTo: bodyTextView.topAnchor, constant: 6),
-            bodyPlaceholder.leadingAnchor.constraint(equalTo: bodyTextView.leadingAnchor)
+            bodyPlaceholder.leadingAnchor.constraint(equalTo: bodyTextView.leadingAnchor),
+            bodyPlaceholder.topAnchor.constraint(equalTo: bodyTextView.topAnchor, constant: 6)
         ])
 
         NSLayoutConstraint.activate([
@@ -234,8 +236,12 @@ private extension TodoEditorViewController {
             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
+}
 
-    func updateTextViews() {
+// Управление вводом и состоянием плейсхолдеров
+private extension TodoEditorViewController {
+    /// Пересчитываем динамическую высоту текстовых полей
+    func updateTextHeights() {
         let titleSize = titleTextView.sizeThatFits(CGSize(width: titleTextView.bounds.width, height: .greatestFiniteMagnitude))
         titleHeightConstraint.constant = max(44, titleSize.height)
 
@@ -245,72 +251,89 @@ private extension TodoEditorViewController {
         view.layoutIfNeeded()
     }
 
+    /// Скрываем плейсхолдеры, когда пользователь ввел текст
     func updatePlaceholders() {
-        let titleIsEmpty = titleTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
-        titlePlaceholder.isHidden = !titleIsEmpty
+        let titleEmpty = titleTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+        titlePlaceholder.isHidden = !titleEmpty
 
-        let bodyIsEmpty = bodyTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
-        bodyPlaceholder.isHidden = !bodyIsEmpty
+        let bodyEmpty = bodyTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+        bodyPlaceholder.isHidden = !bodyEmpty
     }
 
+    /// Следим за клавиатурой, чтобы поднимать контент
     func registerKeyboardNotifications() {
         let willShow = NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { [weak self] notification in
             guard let self,
-                  let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-            scrollView.contentInset.bottom = frame.height + 24
-            scrollView.verticalScrollIndicatorInsets.bottom = frame.height + 24
+                  let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+                  let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber else { return }
+            UIView.animate(withDuration: duration.doubleValue) {
+                let inset = frame.height - self.view.safeAreaInsets.bottom + 16
+                self.scrollView.contentInset.bottom = inset
+                self.scrollView.verticalScrollIndicatorInsets.bottom = inset
+            }
         }
 
-        let willHide = NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.scrollView.contentInset.bottom = 0
-            self?.scrollView.verticalScrollIndicatorInsets.bottom = 0
+        let willHide = NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { [weak self] notification in
+            guard let self,
+                  let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber else { return }
+            UIView.animate(withDuration: duration.doubleValue) {
+                self.scrollView.contentInset.bottom = 0
+                self.scrollView.verticalScrollIndicatorInsets.bottom = 0
+            }
         }
 
         keyboardTokens = [willShow, willHide]
     }
 
+    /// Отключаем наблюдателей клавиатуры при уходе со сцены
     func unregisterKeyboardNotifications() {
-        keyboardTokens.forEach { NotificationCenter.default.removeObserver($0) }
+        keyboardTokens.forEach(NotificationCenter.default.removeObserver)
         keyboardTokens.removeAll()
-    }
-
-    @objc
-    func saveTapped() {
-        presenter.didTapSave(
-            title: titleTextView.text ?? "",
-            details: bodyTextView.text,
-            isCompleted: isCompleted
-        )
-    }
-
-    @objc
-    func cancelTapped() {
-        presenter.didTapCancel()
     }
 }
 
-// MARK: - TodoEditorViewProtocol
+// Обработчики пользовательских событий
+private extension TodoEditorViewController {
+    @objc
+    /// Сохраняем или закрываем редактор при тапе "Назад"
+    func backButtonTapped() {
+        view.endEditing(true)
+        presenter.handleBackAction(title: titleTextView.text ?? "", details: bodyTextView.text, isCompleted: isCompleted)
+    }
+}
 
+// Реализация протокола отображения редактора
 extension TodoEditorViewController: TodoEditorViewProtocol {
+    /// Подставляем данные задачи и настраиваем состояние UI
     func configure(with viewModel: TodoEditorViewModel) {
-        saveButton.setTitle(viewModel.actionButtonTitle, for: .normal)
         titleTextView.text = viewModel.title
         bodyTextView.text = viewModel.details
         dateLabel.text = viewModel.createdAtText
         dateLabel.isHidden = viewModel.createdAtText == nil
+        bodyTopToDateConstraint.constant = dateLabel.isHidden ? 0 : 16
         isCompleted = viewModel.isCompleted
+        if viewModel.isCompleted {
+            statusBadge.isHidden = false
+            statusBadge.text = "Выполнено"
+            bodyTopToStatusConstraint.isActive = true
+            bodyTopToDateConstraint.isActive = false
+        } else {
+            statusBadge.isHidden = true
+            bodyTopToStatusConstraint.isActive = false
+            bodyTopToDateConstraint.isActive = true
+        }
 
         updatePlaceholders()
-        updateTextViews()
+        updateTextHeights()
 
-        if (titleTextView.text?.isEmpty ?? true) {
+        if titleTextView.text?.isEmpty ?? true {
             titleTextView.becomeFirstResponder()
         }
     }
 
+    /// Прячем/показываем индикатор и блокируем взаимодействия
     func showLoading(_ isLoading: Bool) {
         backButton.isEnabled = !isLoading
-        saveButton.isEnabled = !isLoading
         if isLoading {
             activityIndicator.startAnimating()
         } else {
@@ -318,28 +341,147 @@ extension TodoEditorViewController: TodoEditorViewProtocol {
         }
     }
 
+    /// Показываем алерт, если валидация или сохранение завершились ошибкой
     func showError(message: String) {
         let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
+
+    /// Просим подтвердить выход, когда пользователь ввел данные, но не сохранил
+    func presentExitConfirmation(canSave: Bool, onSave: @escaping () -> Void, onDiscard: @escaping () -> Void) {
+        let saveWrapper: (() -> Void)? = canSave ? { onSave() } : nil
+        let discardWrapper: () -> Void = { onDiscard() }
+#if DEBUG
+        lastExitConfirmationHandlers = (saveWrapper, discardWrapper)
+#endif
+        if isUITestEnvironment {
+            if let saveWrapper {
+                handleExitSelection(.save(saveWrapper))
+            } else {
+                handleExitSelection(.discard(discardWrapper))
+            }
+            return
+        }
+
+        let alert = UIAlertController(
+            title: "Сохранить задачу?",
+            message: "Вы хотите сохранить изменения перед выходом?",
+            preferredStyle: .actionSheet
+        )
+
+        if let saveWrapper {
+            alert.addAction(UIAlertAction(title: "Сохранить", style: .default) { [weak self] _ in
+                self?.handleExitSelection(.save(saveWrapper))
+            })
+        }
+
+        let discardTitle = canSave ? "Не сохранять" : "Выйти без сохранения"
+        alert.addAction(UIAlertAction(title: discardTitle, style: .destructive) { [weak self] _ in
+            self?.handleExitSelection(.discard(discardWrapper))
+        })
+
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel) { [weak self] _ in
+            self?.handleExitSelection(.cancel)
+        })
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = backButton
+            popover.sourceRect = backButton.bounds
+        } else {
+#if DEBUG
+            TodoEditorViewController.popoverFallbackHandler?(alert, backButton)
+#endif
+        }
+
+        present(alert, animated: true)
+    }
+
+    private enum ExitSelection {
+        case save(() -> Void)
+        case discard(() -> Void)
+        case cancel
+    }
+
+    private func handleExitSelection(_ selection: ExitSelection) {
+        switch selection {
+        case .save(let action):
+            action()
+        case .discard(let action):
+            action()
+        case .cancel:
+            break
+        }
+#if DEBUG
+        lastExitConfirmationHandlers = (nil, nil)
+#endif
+    }
 }
 
-// MARK: - UITextViewDelegate
-
+// Реализуем делегата текстовых вью для синхронизации UI
 extension TodoEditorViewController: UITextViewDelegate {
+    /// Синхронизируем высоту и плейсхолдеры при каждом изменении текста
     func textViewDidChange(_ textView: UITextView) {
-        updateTextViews()
+        updateTextHeights()
         updatePlaceholders()
     }
 
+    /// Сразу скрываем плейсхолдеры при начале редактирования
     func textViewDidBeginEditing(_ textView: UITextView) {
         updatePlaceholders()
     }
 
+    /// После окончания ввода обновляем состояние плейсхолдеров
     func textViewDidEndEditing(_ textView: UITextView) {
         updatePlaceholders()
     }
 }
+
+#if DEBUG
+extension TodoEditorViewController {
+    var backButtonForTests: UIButton { backButton }
+    var titleTextViewForTests: UITextView { titleTextView }
+    var bodyTextViewForTests: UITextView { bodyTextView }
+    var scrollViewForTests: UIScrollView { scrollView }
+    var dateLabelForTests: UILabel { dateLabel }
+    var statusBadgeForTests: UILabel { statusBadge }
+    var activityIndicatorForTests: UIActivityIndicatorView { activityIndicator }
+    var titlePlaceholderForTests: UILabel { titlePlaceholder }
+    var bodyPlaceholderForTests: UILabel { bodyPlaceholder }
+    var titleHeightConstraintForTests: NSLayoutConstraint { titleHeightConstraint }
+    var bodyHeightConstraintForTests: NSLayoutConstraint { bodyHeightConstraint }
+    var bodyTopToStatusConstraintForTests: NSLayoutConstraint { bodyTopToStatusConstraint }
+    var bodyTopToDateConstraintForTests: NSLayoutConstraint { bodyTopToDateConstraint }
+
+    enum ExitSelectionForTests {
+        case save
+        case discard
+        case cancel
+    }
+
+    func performExitSelectionForTests(_ selection: ExitSelectionForTests) {
+        switch selection {
+        case .save:
+            if let action = lastExitConfirmationHandlers.save {
+                handleExitSelection(.save(action))
+            }
+        case .discard:
+            if let action = lastExitConfirmationHandlers.discard {
+                handleExitSelection(.discard(action))
+            }
+        case .cancel:
+            handleExitSelection(.cancel)
+        }
+    }
+
+    func triggerExitSaveHandlerForTests() {
+        performExitSelectionForTests(.save)
+    }
+
+    func triggerExitDiscardHandlerForTests() {
+        performExitSelectionForTests(.discard)
+    }
+}
+#endif
 
 

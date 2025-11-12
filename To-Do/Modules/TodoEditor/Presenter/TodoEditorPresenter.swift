@@ -8,20 +8,23 @@
 import Foundation
 
 /// Методы обновления интерфейса редактора
+@MainActor
 protocol TodoEditorViewProtocol: AnyObject {
     func configure(with viewModel: TodoEditorViewModel)
     func showLoading(_ isLoading: Bool)
     func showError(message: String)
+    func presentExitConfirmation(canSave: Bool, onSave: @escaping () -> Void, onDiscard: @escaping () -> Void)
 }
 
 /// Что может попросить вью у презентера
+@MainActor
 protocol TodoEditorPresenterProtocol: AnyObject {
     func viewDidLoad()
-    func didTapSave(title: String, details: String?, isCompleted: Bool)
-    func didTapCancel()
+    func handleBackAction(title: String, details: String?, isCompleted: Bool)
 }
 
 /// Презентер подготавливает данные для UI и закрывает экран
+@MainActor
 final class TodoEditorPresenter: TodoEditorPresenterProtocol {
     weak var view: TodoEditorViewProtocol?
 
@@ -54,21 +57,44 @@ final class TodoEditorPresenter: TodoEditorPresenterProtocol {
         interactor.loadInitialTodo()
     }
 
-    func didTapSave(title: String, details: String?, isCompleted: Bool) {
+    func handleBackAction(title: String, details: String?, isCompleted: Bool) {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard validate(title: trimmedTitle) else {
-            view?.showError(message: "Введите название задачи.")
-            return
-        }
-
-        view?.showLoading(true)
         let trimmedDetails = details?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
-        interactor.saveTodo(title: trimmedTitle, details: trimmedDetails, isCompleted: isCompleted)
-    }
+        switch mode {
+        case .create:
+            let hasAnyInput = !trimmedTitle.isEmpty || trimmedDetails != nil || isCompleted
+            guard hasAnyInput else {
+                cancelEditor()
+                return
+            }
 
-    func didTapCancel() {
-        output?.todoEditorDidFinish(with: .cancelled)
-        router.dismiss()
+            view?.presentExitConfirmation(
+                canSave: !trimmedTitle.isEmpty,
+                onSave: { [weak self] in
+                    guard let self else { return }
+                    self.save(title: trimmedTitle, details: trimmedDetails, isCompleted: isCompleted)
+                },
+                onDiscard: { [weak self] in
+                    self?.cancelEditor()
+                }
+            )
+            return
+        case .edit:
+            guard !trimmedTitle.isEmpty else {
+                view?.showError(message: "Введите название задачи.")
+                return
+            }
+            let original = currentTodo
+            let originalDetails = original?.details?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+            let hasChanges = trimmedTitle != original?.title
+                || trimmedDetails != originalDetails
+                || isCompleted != original?.isCompleted
+            if hasChanges {
+                save(title: trimmedTitle, details: trimmedDetails, isCompleted: isCompleted)
+            } else {
+                cancelEditor()
+            }
+        }
     }
 }
 
@@ -80,8 +106,7 @@ extension TodoEditorPresenter: TodoEditorInteractorOutput {
             title: todo?.title ?? "",
             details: todo?.details ?? "",
             isCompleted: todo?.isCompleted ?? false,
-            createdAtText: todo.map { "Создано \(dateFormatter.string(from: $0.createdAt))" },
-            actionButtonTitle: mode.actionTitle
+            createdAtText: todo.map { dateFormatter.string(from: $0.createdAt) }
         )
         view?.configure(with: viewModel)
     }
@@ -108,26 +133,21 @@ extension TodoEditorPresenter: TodoEditorInteractorOutput {
 }
 
 private extension TodoEditorPresenter {
-    func validate(title: String) -> Bool {
-        !title.isEmpty
+    func save(title: String, details: String?, isCompleted: Bool) {
+        view?.showLoading(true)
+        interactor.saveTodo(title: title, details: details, isCompleted: isCompleted)
     }
 
-    static func makeDateFormatter() -> DateFormatter {
+    func cancelEditor() {
+        output?.todoEditorDidFinish(with: .cancelled)
+        router.dismiss()
+    }
+
+    nonisolated static func makeDateFormatter() -> DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
+        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.dateFormat = "dd/MM/yy"
         return formatter
-    }
-}
-
-private extension TodoEditorMode {
-    var actionTitle: String {
-        switch self {
-        case .create:
-            return "Создать"
-        case .edit:
-            return "Сохранить"
-        }
     }
 }
 

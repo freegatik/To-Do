@@ -41,7 +41,11 @@ final class TodoEditorRouter: TodoEditorRouterProtocol {
     }
 
     func dismiss() {
-        viewController?.dismiss(animated: true, completion: nil)
+        if let navigationController = viewController?.navigationController, navigationController.viewControllers.count > 1 {
+            navigationController.popViewController(animated: true)
+        } else {
+            viewController?.dismiss(animated: true, completion: nil)
+        }
     }
 }
 

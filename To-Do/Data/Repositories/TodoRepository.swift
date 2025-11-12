@@ -38,6 +38,21 @@ final class TodoRepository: TodoRepositoryProtocol {
         static let initialLoadKey = "TodoRepository.initialLoad"
     }
 
+#if DEBUG
+    enum DebugFailure {
+        case fetchTodos(Error)
+        case createTodo(Error)
+        case updateTodo(Error)
+        case deleteTodo(Error)
+        case searchTodos(Error)
+    }
+
+    static var debugFailure: DebugFailure?
+    static var countTodosHook: ((Int) -> Void)?
+    static var debugCountTodosError: Error?
+    static var isUITestOverride: Bool?
+#endif
+
     private let coreDataStack: CoreDataStackProtocol
     private let apiClient: TodoAPIClientProtocol
     private let userDefaults: UserDefaults
@@ -55,7 +70,18 @@ final class TodoRepository: TodoRepositoryProtocol {
 
     /// Проверяем, нужно ли грузить стартовые данные из API
     func loadInitialTodos(completion: @escaping (Result<[TodoItem], Error>) -> Void) {
-        if ProcessInfo.processInfo.arguments.contains("--uitest") {
+        let isUITestEnvironment: Bool
+#if DEBUG
+        if let override = TodoRepository.isUITestOverride {
+            isUITestEnvironment = override
+        } else {
+            isUITestEnvironment = ProcessInfo.processInfo.arguments.contains("--uitest")
+        }
+#else
+        isUITestEnvironment = ProcessInfo.processInfo.arguments.contains("--uitest")
+#endif
+
+        if isUITestEnvironment {
             userDefaults.set(true, forKey: Constants.initialLoadKey)
             fetchTodos(completion: completion)
             return
@@ -86,6 +112,12 @@ final class TodoRepository: TodoRepositoryProtocol {
 
     /// Берём задачи из Core Data по дате
     func fetchTodos(completion: @escaping (Result<[TodoItem], Error>) -> Void) {
+#if DEBUG
+        if case let .fetchTodos(error)? = TodoRepository.debugFailure {
+            completion(.failure(error))
+            return
+        }
+#endif
         coreDataStack.performBackgroundTask { context in
             do {
                 let request = TodoEntity.fetchRequest()
@@ -105,10 +137,17 @@ final class TodoRepository: TodoRepositoryProtocol {
 
     /// Создаём новую сущность и возвращаем её на главный поток
     func createTodo(title: String, details: String?, completion: @escaping (Result<TodoItem, Error>) -> Void) {
+#if DEBUG
+        if case let .createTodo(error)? = TodoRepository.debugFailure {
+            completion(.failure(error))
+            return
+        }
+#endif
         coreDataStack.performBackgroundTask { context in
             do {
+                let newId = try self.nextIdentifier(in: context)
                 let entity = TodoEntity(context: context)
-                entity.id = try self.nextIdentifier(in: context)
+                entity.id = newId
                 entity.title = title
                 entity.details = details
                 entity.createdAt = Date()
@@ -136,6 +175,12 @@ final class TodoRepository: TodoRepositoryProtocol {
 
     /// Обновляем выбранную задачу, если она ещё есть
     func updateTodo(_ item: TodoItem, completion: @escaping (Result<TodoItem, Error>) -> Void) {
+#if DEBUG
+        if case let .updateTodo(error)? = TodoRepository.debugFailure {
+            completion(.failure(error))
+            return
+        }
+#endif
         coreDataStack.performBackgroundTask { context in
             do {
                 guard let entity = try self.fetchEntity(with: item.id, in: context) else {
@@ -168,6 +213,12 @@ final class TodoRepository: TodoRepositoryProtocol {
 
     /// Удаляем сущность и отвечаем в главном потоке
     func deleteTodo(_ item: TodoItem, completion: @escaping (Result<Void, Error>) -> Void) {
+#if DEBUG
+        if case let .deleteTodo(error)? = TodoRepository.debugFailure {
+            completion(.failure(error))
+            return
+        }
+#endif
         coreDataStack.performBackgroundTask { context in
             do {
                 guard let entity = try self.fetchEntity(with: item.id, in: context) else {
@@ -188,21 +239,39 @@ final class TodoRepository: TodoRepositoryProtocol {
 
     /// Фильтруем задачи без блокировки UI
     func searchTodos(query: String, completion: @escaping (Result<[TodoItem], Error>) -> Void) {
-        coreDataStack.performBackgroundTask { context in
+#if DEBUG
+        if case let .searchTodos(error)? = TodoRepository.debugFailure {
+            completion(.failure(error))
+            return
+        }
+#endif
+        let context = coreDataStack.viewContext
+        context.perform {
             do {
                 let request = TodoEntity.fetchRequest()
-                if !query.isEmpty {
-                    request.predicate = NSPredicate(
-                        format: "title CONTAINS[cd] %@ OR details CONTAINS[cd] %@",
-                        query,
-                        query
-                    )
-                }
                 request.sortDescriptors = [NSSortDescriptor(keyPath: \TodoEntity.createdAt, ascending: false)]
                 let entities = try context.fetch(request)
                 let items = entities.compactMap { $0.asItem() }
+                let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+                let filtered: [TodoItem]
+                if trimmedQuery.isEmpty {
+                    filtered = items
+                } else {
+                    let normalizedQuery = trimmedQuery.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+                    filtered = items.filter { item in
+                        let normalizedTitle = item.title.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+                        if normalizedTitle.contains(normalizedQuery) {
+                            return true
+                        }
+                        if let details = item.details?.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current),
+                           details.contains(normalizedQuery) {
+                            return true
+                        }
+                        return false
+                    }
+                }
                 DispatchQueue.main.async {
-                    completion(.success(items))
+                    completion(.success(filtered))
                 }
             } catch {
                 DispatchQueue.main.async {
@@ -219,9 +288,11 @@ final class TodoRepository: TodoRepositoryProtocol {
     ) {
         coreDataStack.performBackgroundTask { context in
             do {
-                for dto in dtos {
+                let baseDate = Date()
+                for (index, dto) in dtos.enumerated() {
                     let entity = TodoEntity(context: context)
-                    let item = TodoItem(dto: dto)
+                    let createdAt = baseDate.addingTimeInterval(-Double(index))
+                    let item = TodoItem(dto: dto, createdAt: createdAt)
                     entity.update(with: item)
                 }
 
@@ -255,28 +326,47 @@ final class TodoRepository: TodoRepositoryProtocol {
 
     /// Считаем следующий id на основе максимального
     private func nextIdentifier(in context: NSManagedObjectContext) throws -> Int64 {
-        let request = NSFetchRequest<NSDictionary>(entityName: "TodoEntity")
-        request.resultType = .dictionaryResultType
-        let expressionDescription = NSExpressionDescription()
-        expressionDescription.name = "maxId"
-        expressionDescription.expression = NSExpression(forFunction: "max:", arguments: [NSExpression(forKeyPath: "id")])
-        expressionDescription.expressionResultType = .integer64AttributeType
-        request.propertiesToFetch = [expressionDescription]
+        let request = TodoEntity.fetchRequest()
+        request.fetchLimit = 1
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \TodoEntity.id, ascending: false)]
 
-        let result = try context.fetch(request)
-        let maxId = result.first?["maxId"] as? Int64 ?? 0
-        return maxId + 1
+        let entities = try context.fetch(request)
+        guard let lastEntity = entities.first else {
+            return 1
+        }
+        return lastEntity.id + 1
     }
 
     /// Считаем количество задач, чтобы понять, нужно ли импортировать
     private func countTodos(completion: @escaping (Int) -> Void) {
-        coreDataStack.performBackgroundTask { context in
-            let request = TodoEntity.fetchRequest()
-            let count = (try? context.count(for: request)) ?? 0
-            DispatchQueue.main.async {
-                completion(count)
+        let count = countTodosValue()
+#if DEBUG
+        TodoRepository.countTodosHook?(count)
+#endif
+        completion(count)
+    }
+
+    private func countTodosValue() -> Int {
+        let context = coreDataStack.viewContext
+        let request = TodoEntity.fetchRequest()
+        var result = 0
+        context.performAndWait {
+#if DEBUG
+            let forcedError = TodoRepository.debugCountTodosError
+            TodoRepository.debugCountTodosError = nil
+#else
+            let forcedError: Error? = nil
+#endif
+            do {
+                if let forcedError {
+                    throw forcedError
+                }
+                result = try context.count(for: request)
+            } catch {
+                result = 0
             }
         }
+        return result
     }
 }
 

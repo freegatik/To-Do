@@ -21,14 +21,37 @@ final class CoreDataStack: CoreDataStackProtocol {
     static let shared = CoreDataStack()
 
     let container: NSPersistentContainer
+    private let errorHandler: ((Error) -> Void)?
+    private let shouldAssertOnError: Bool
+#if DEBUG
+    static var assertionHandler: ((String) -> Void)?
+    private static var defaultAssertionFailureAction: (String) -> Void { { assertionFailure($0) } }
+    static var assertionFailureAction: (String) -> Void = defaultAssertionFailureAction
+    static func failAssertion(_ message: String) {
+        assertionFailureAction(message)
+    }
+    static func resetAssertionFailureAction() {
+        assertionFailureAction = defaultAssertionFailureAction
+    }
+#else
+    static func failAssertion(_ message: String) {
+        assertionFailure(message)
+    }
+#endif
 
     var viewContext: NSManagedObjectContext {
         container.viewContext
     }
 
     /// Настраиваем контейнер и автослияние изменений
-    init(container: NSPersistentContainer = NSPersistentContainer(name: "To_Do")) {
+    init(
+        container: NSPersistentContainer = NSPersistentContainer(name: "To_Do"),
+        errorHandler: ((Error) -> Void)? = nil,
+        shouldAssertOnError: Bool = true
+    ) {
         self.container = container
+        self.errorHandler = errorHandler
+        self.shouldAssertOnError = shouldAssertOnError
         if ProcessInfo.processInfo.arguments.contains("--uitest") {
             let description = NSPersistentStoreDescription()
             description.type = NSInMemoryStoreType
@@ -37,7 +60,18 @@ final class CoreDataStack: CoreDataStackProtocol {
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.loadPersistentStores { _, error in
             if let error {
-                assertionFailure("Unresolved Core Data error: \(error)")
+                errorHandler?(error)
+                if shouldAssertOnError {
+#if DEBUG
+                    if let assertionHandler = CoreDataStack.assertionHandler {
+                        assertionHandler("Unresolved Core Data error: \(error)")
+                    } else {
+                        CoreDataStack.failAssertion("Unresolved Core Data error: \(error)")
+                    }
+#else
+                    CoreDataStack.failAssertion("Unresolved Core Data error: \(error)")
+#endif
+                }
             }
         }
     }

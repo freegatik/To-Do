@@ -31,12 +31,12 @@ struct TodoItem: Identifiable, Equatable {
     }
 
     /// Переводим DTO из сети в модель
-    init(dto: TodoDTO) {
+    init(dto: TodoDTO, createdAt: Date = Date()) {
         self.init(
             id: Int64(dto.id),
             title: dto.todo.trimmingCharacters(in: .whitespacesAndNewlines),
             details: dto.completed ? "Completed task from user \(dto.userId)" : nil,
-            createdAt: Date(),
+            createdAt: createdAt,
             isCompleted: dto.completed
         )
     }

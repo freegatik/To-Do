@@ -16,7 +16,12 @@ protocol TodoAPIClientProtocol {
 /// Реализация на `URLSession`
 final class TodoAPIClient: TodoAPIClientProtocol {
     private enum Constants {
-        static let todosURL = URL(string: "https://dummyjson.com/todos")!
+        static let todosURL: URL = {
+            guard let url = URL(string: "https://dummyjson.com/todos") else {
+                preconditionFailure("Неверный URL для загрузки задач")
+            }
+            return url
+        }()
         static let backgroundQueue = DispatchQueue(label: "io.todo.api", qos: .userInitiated, attributes: .concurrent)
     }
 

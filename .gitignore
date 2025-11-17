@@ -53,5 +53,6 @@ Secrets.xcconfig
 Config/Secrets*.plist
 
 # Local project data
-*.json
 *.txt
+*.json
+!To-Do/Assets.xcassets/**/Contents.json

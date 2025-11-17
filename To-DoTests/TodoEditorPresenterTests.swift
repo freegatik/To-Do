@@ -88,16 +88,24 @@ final class TodoEditorPresenterTests: XCTestCase {
         XCTAssertTrue(output.receivedResults.last?.isCancelled ?? false)
     }
 
-    /// В режиме редактирования пустой заголовок вызывает ошибку валидации
-    func testHandleBackActionEditWithEmptyTitleShowsError() {
+    /// В режиме редактирования пустой заголовок предлагает выйти без сохранения
+    func testHandleBackActionEditWithEmptyTitleShowsExitConfirmation() {
         let original = makeTodo(id: 1, title: "Initial", details: "Desc", isCompleted: false)
         let sut = makePresenter(mode: .edit(original))
         sut.didLoad(todo: original)
 
         sut.handleBackAction(title: "   ", details: "Desc", isCompleted: true)
 
-        XCTAssertEqual(view.errorMessages.last, "Введите название задачи.")
+        let confirmation = view.exitConfirmationInvocations.last
+        XCTAssertEqual(confirmation?.canSave, false)
         XCTAssertEqual(router.dismissCallCount, 0)
+
+        confirmation?.onSave()
+        XCTAssertEqual(view.errorMessages.last, "Введите название задачи.")
+
+        confirmation?.onDiscard()
+        XCTAssertEqual(router.dismissCallCount, 1)
+        XCTAssertTrue(output.receivedResults.last?.isCancelled ?? false)
     }
 
     /// При отсутствии изменений редактор закрывается без дополнительных действий

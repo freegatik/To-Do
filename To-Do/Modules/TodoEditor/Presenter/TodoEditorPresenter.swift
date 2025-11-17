@@ -80,20 +80,26 @@ final class TodoEditorPresenter: TodoEditorPresenterProtocol {
             )
             return
         case .edit:
-            guard !trimmedTitle.isEmpty else {
-                view?.showError(message: "Введите название задачи.")
-                return
-            }
             let original = currentTodo
             let originalDetails = original?.details?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
             let hasChanges = trimmedTitle != original?.title
                 || trimmedDetails != originalDetails
                 || isCompleted != original?.isCompleted
-            if hasChanges {
-                save(title: trimmedTitle, details: trimmedDetails, isCompleted: isCompleted)
-            } else {
+            guard hasChanges else {
                 cancelEditor()
+                return
             }
+
+            guard !trimmedTitle.isEmpty else {
+                view?.presentExitConfirmation(
+                    canSave: false,
+                    onSave: { [weak self] in self?.view?.showError(message: "Введите название задачи.") },
+                    onDiscard: { [weak self] in self?.cancelEditor() }
+                )
+                return
+            }
+
+            save(title: trimmedTitle, details: trimmedDetails, isCompleted: isCompleted)
         }
     }
 }

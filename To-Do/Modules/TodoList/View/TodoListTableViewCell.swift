@@ -140,6 +140,9 @@ final class TodoListTableViewCell: UITableViewCell {
         }
 
         dateLabel.text = viewModel.date
+
+        statusButton.accessibilityLabel = viewModel.isCompleted ? "Задача выполнена" : "Задача активна"
+        statusButton.accessibilityHint = viewModel.isCompleted ? "Нажмите, чтобы отметить как невыполненную" : "Нажмите, чтобы отметить как выполненную"
     }
 
     /// Управляем отображением разделительной линии между задачами

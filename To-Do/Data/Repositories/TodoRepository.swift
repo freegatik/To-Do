@@ -245,8 +245,7 @@ final class TodoRepository: TodoRepositoryProtocol {
             return
         }
 #endif
-        let context = coreDataStack.viewContext
-        context.perform {
+        coreDataStack.performBackgroundTask { context in
             do {
                 let request = TodoEntity.fetchRequest()
                 request.sortDescriptors = [NSSortDescriptor(keyPath: \TodoEntity.createdAt, ascending: false)]

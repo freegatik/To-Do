@@ -121,6 +121,76 @@ final class TodoListInteractorTests: XCTestCase {
         wait(for: [updateExpectation], timeout: 0.1)
         XCTAssertEqual(repository.searchTodosCallCount, 1)
     }
+
+    /// Ошибка удаления задачи передаётся в output
+    func testDeleteTodoFailureNotifiesOutput() {
+        let item = makeItem(id: 10)
+        let expectedError = NSError(domain: "test", code: 2)
+        repository.deleteTodoResult = .failure(expectedError)
+
+        let failureExpectation = expectation(description: "didFail called on delete")
+        output.onFailure = { error in
+            XCTAssertEqual((error as NSError).code, expectedError.code)
+            failureExpectation.fulfill()
+        }
+
+        sut.deleteTodo(item)
+
+        wait(for: [failureExpectation], timeout: 0.1)
+        XCTAssertEqual(repository.deleteTodoCallCount, 1)
+        XCTAssertEqual(repository.fetchTodosCallCount, 0)
+    }
+
+    /// Ошибка загрузки начальных задач передаётся в output
+    func testLoadInitialTodosFailureNotifiesOutput() {
+        let expectedError = NSError(domain: "test", code: 3)
+        repository.loadInitialTodosResult = .failure(expectedError)
+
+        let failureExpectation = expectation(description: "didFail called on loadInitial")
+        output.onFailure = { error in
+            XCTAssertEqual((error as NSError).code, expectedError.code)
+            failureExpectation.fulfill()
+        }
+
+        sut.loadInitialTodos()
+
+        wait(for: [failureExpectation], timeout: 0.1)
+        XCTAssertEqual(repository.loadInitialTodosCallCount, 1)
+    }
+
+    /// Ошибка обновления списка задач передаётся в output
+    func testRefreshTodosFailureNotifiesOutput() {
+        let expectedError = NSError(domain: "test", code: 4)
+        repository.fetchTodosResult = .failure(expectedError)
+
+        let failureExpectation = expectation(description: "didFail called on refresh")
+        output.onFailure = { error in
+            XCTAssertEqual((error as NSError).code, expectedError.code)
+            failureExpectation.fulfill()
+        }
+
+        sut.refreshTodos()
+
+        wait(for: [failureExpectation], timeout: 0.1)
+        XCTAssertEqual(repository.fetchTodosCallCount, 1)
+    }
+
+    /// Ошибка поиска задач передаётся в output
+    func testSearchTodosFailureNotifiesOutput() {
+        let expectedError = NSError(domain: "test", code: 5)
+        repository.searchTodosResult = .failure(expectedError)
+
+        let failureExpectation = expectation(description: "didFail called on search")
+        output.onFailure = { error in
+            XCTAssertEqual((error as NSError).code, expectedError.code)
+            failureExpectation.fulfill()
+        }
+
+        sut.searchTodos(query: "query")
+
+        wait(for: [failureExpectation], timeout: 0.1)
+        XCTAssertEqual(repository.searchTodosCallCount, 1)
+    }
 }
 
 // Вспомогательные заглушки для тестов интерактора

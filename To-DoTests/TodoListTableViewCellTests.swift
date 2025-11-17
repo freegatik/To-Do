@@ -140,6 +140,14 @@ final class TodoListTableViewCellTests: XCTestCase {
 
         XCTAssertTrue(hitView === statusButton, "hitTest should return status button for points slightly outside its bounds")
     }
+
+    func testInitWithCoderExists() {
+        let cellType = TodoListTableViewCell.self
+        XCTAssertTrue(
+            cellType.instancesRespond(to: #selector(TodoListTableViewCell.init(coder:))),
+            "init(coder:) should be implemented"
+        )
+    }
 }
 
 // Вспомогательный доступ к приватным свойствам ячейки

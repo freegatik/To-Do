@@ -364,7 +364,7 @@ final class TodoRepositoryTests: XCTestCase {
 
     /// Ошибка выборки при поиске также пробрасывается
     func testSearchTodosWhenFetchFailsReturnsError() async {
-        let failingStack = FailingCoreDataStack(throwOnViewFetch: true)
+        let failingStack = FailingCoreDataStack(throwOnFetch: true)
         let (repository, _, _) = await makeRepository(stack: failingStack)
 
         do {
@@ -590,13 +590,14 @@ private func makeRepository(stack: CoreDataStackProtocol = TestCoreDataStack()) 
     return (repository, apiClient, UserDefaults(suiteName: suite)!)
 }
 
-@MainActor
 private func performOnMainActor<R>(
     _ body: @escaping (@escaping (Result<R, Error>) -> Void) -> Void
 ) async throws -> R {
     try await withCheckedThrowingContinuation { continuation in
-        body { result in
-            continuation.resume(with: result)
+        Task { @MainActor in
+            body { result in
+                continuation.resume(with: result)
+            }
         }
     }
 }
@@ -618,6 +619,7 @@ private func fetchTodos(_ repository: TodoRepositoryProtocol) async throws -> [T
 }
 
 /// Создаём тестовую задачу и возвращаем результат для дальнейших проверок
+@MainActor
 private func createTodo(
     _ repository: TodoRepositoryProtocol,
     title: String,
@@ -629,6 +631,7 @@ private func createTodo(
 }
 
 /// Обновляем существующую задачу и возвращаем новую версию
+@MainActor
 private func updateTodo(
     _ repository: TodoRepositoryProtocol,
     item: TodoItem
@@ -639,6 +642,7 @@ private func updateTodo(
 }
 
 /// Удаляем задачу из хранилища внутри теста
+@MainActor
 private func deleteTodo(
     _ repository: TodoRepositoryProtocol,
     item: TodoItem
@@ -649,6 +653,7 @@ private func deleteTodo(
 }
 
 /// Выполняем поиск по репозиторию и возвращаем найденные результаты
+@MainActor
 private func searchTodos(
     _ repository: TodoRepositoryProtocol,
     query: String
@@ -659,6 +664,7 @@ private func searchTodos(
 }
 
 /// Переключаем статус задачи и возвращаем результат
+@MainActor
 private func toggleCompletion(
     _ repository: TodoRepositoryProtocol,
     item: TodoItem

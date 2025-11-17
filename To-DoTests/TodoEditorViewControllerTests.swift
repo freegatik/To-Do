@@ -234,7 +234,7 @@ final class TodoEditorViewControllerTests: XCTestCase {
             return
         }
 
-        guard let cancelAction = alert.action(withTitle: "Отмена") else {
+        guard alert.action(withTitle: "Отмена") != nil else {
             XCTFail("Missing cancel action")
             return
         }

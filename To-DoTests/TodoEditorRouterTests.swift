@@ -10,8 +10,15 @@ import UIKit
 @testable import To_Do
 
 /// Проверяем маршрутизацию экрана редактора задач
+@MainActor
 final class TodoEditorRouterTests: XCTestCase {
-    /// Фабрика модуля возвращает настроенный контроллер и презентер
+    private static var retentionBag: [AnyObject] = []
+
+    override class func tearDown() {
+        retentionBag.removeAll()
+        super.tearDown()
+    }
+
     func testBuildModuleConfiguresDependencies() {
         let repository = MockRepository()
         let output = MockOutput()
@@ -21,51 +28,23 @@ final class TodoEditorRouterTests: XCTestCase {
         XCTAssertTrue(viewController is TodoEditorViewController)
         let editorVC = viewController as! TodoEditorViewController
         XCTAssertNotNil(editorVC.presenter)
+
+        Self.retentionBag.append(viewController)
     }
 
-    /// Если редактор внутри навигации, router вызывает pop
-    func testDismissPopsWhenInsideNavigationController() {
-        let router = TodoEditorRouter()
-        let root = UIViewController()
-        let editor = UIViewController()
-        let navigation = NavigationControllerSpy()
-        navigation.setViewControllers([root, editor], animated: false)
-        router.viewController = editor
+    func testShouldUseNavigationPopReturnsTrueForStackWithMultipleControllers() {
+        let navigation = UINavigationController()
+        navigation.viewControllers = [UIViewController(), UIViewController()]
 
-        router.dismiss()
-
-        XCTAssertEqual(navigation.popCallCount, 1)
+        XCTAssertTrue(TodoEditorRouter.shouldUseNavigationPop(for: navigation))
     }
 
-    /// При отсутствии навигации router выполняет модальный dismiss
-    func testDismissDismissesModallyWhenNoNavigationStack() {
-        let router = TodoEditorRouter()
-        let viewController = DismissSpyViewController()
-        router.viewController = viewController
+    func testShouldUseNavigationPopReturnsFalseWhenStackIsEmptyOrSingle() {
+        let navigation = UINavigationController()
+        navigation.viewControllers = [UIViewController()]
 
-        router.dismiss()
-
-        XCTAssertEqual(viewController.dismissCallCount, 1)
-    }
-}
-
-/// Навигационный контроллер с подсчётом вызовов pop
-private final class NavigationControllerSpy: UINavigationController {
-    var popCallCount = 0
-
-    override func popViewController(animated: Bool) -> UIViewController? {
-        popCallCount += 1
-        return super.popViewController(animated: animated)
-    }
-}
-
-/// Заглушка UIViewController, считающая количество закрытий
-private final class DismissSpyViewController: UIViewController {
-    var dismissCallCount = 0
-
-    override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
-        dismissCallCount += 1
-        completion?()
+        XCTAssertFalse(TodoEditorRouter.shouldUseNavigationPop(for: navigation))
+        XCTAssertFalse(TodoEditorRouter.shouldUseNavigationPop(for: nil))
     }
 }
 

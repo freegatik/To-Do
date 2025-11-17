@@ -41,11 +41,17 @@ final class TodoEditorRouter: TodoEditorRouterProtocol {
     }
 
     func dismiss() {
-        if let navigationController = viewController?.navigationController, navigationController.viewControllers.count > 1 {
-            navigationController.popViewController(animated: true)
+        if Self.shouldUseNavigationPop(for: viewController?.navigationController) {
+            viewController?.navigationController?.popViewController(animated: true)
         } else {
             viewController?.dismiss(animated: true, completion: nil)
         }
+    }
+
+    /// Выделяем условие в отдельный метод для удобства тестирования
+    static func shouldUseNavigationPop(for navigationController: UINavigationController?) -> Bool {
+        guard let navigationController else { return false }
+        return navigationController.viewControllers.count > 1
     }
 }
 

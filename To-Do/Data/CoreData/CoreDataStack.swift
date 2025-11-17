@@ -47,7 +47,8 @@ final class CoreDataStack: CoreDataStackProtocol {
     init(
         container: NSPersistentContainer = NSPersistentContainer(name: "To_Do"),
         errorHandler: ((Error) -> Void)? = nil,
-        shouldAssertOnError: Bool = true
+        shouldAssertOnError: Bool = true,
+        loadPersistentStoresHandler: ((NSPersistentContainer, @escaping (NSPersistentStoreDescription, Error?) -> Void) -> Void)? = nil
     ) {
         self.container = container
         self.errorHandler = errorHandler
@@ -58,7 +59,7 @@ final class CoreDataStack: CoreDataStackProtocol {
             container.persistentStoreDescriptions = [description]
         }
         container.viewContext.automaticallyMergesChangesFromParent = true
-        container.loadPersistentStores { _, error in
+        let completion: (NSPersistentStoreDescription, Error?) -> Void = { _, error in
             if let error {
                 errorHandler?(error)
                 if shouldAssertOnError {
@@ -73,6 +74,11 @@ final class CoreDataStack: CoreDataStackProtocol {
 #endif
                 }
             }
+        }
+        if let handler = loadPersistentStoresHandler {
+            handler(container, completion)
+        } else {
+            container.loadPersistentStores(completionHandler: completion)
         }
     }
 

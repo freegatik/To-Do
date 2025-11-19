@@ -69,6 +69,15 @@ final class TodoListTableViewCell: UITableViewCell {
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
+        commonInit()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
+
+    private func commonInit() {
         selectionStyle = .none
         backgroundColor = .clear
         contentView.backgroundColor = .appBlack
@@ -76,10 +85,6 @@ final class TodoListTableViewCell: UITableViewCell {
         contentView.layoutMargins = .zero
         setupLayout()
         statusButton.accessibilityTraits.insert(.button)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 
     override func prepareForReuse() {

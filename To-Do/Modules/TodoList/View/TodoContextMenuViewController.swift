@@ -103,12 +103,14 @@ final class TodoContextMenuViewController: UIViewController {
         self.viewModel = viewModel
         self.anchorRect = anchorRect
         super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .overFullScreen
-        modalTransitionStyle = .crossDissolve
+        configurePresentationStyle()
     }
 
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        self.viewModel = TodoContextMenuViewController.makePlaceholderViewModel()
+        self.anchorRect = .zero
+        super.init(coder: coder)
+        configurePresentationStyle()
     }
 
     override func viewDidLoad() {
@@ -129,6 +131,17 @@ final class TodoContextMenuViewController: UIViewController {
         if !isPerformingAction {
             onDismiss?()
         }
+    }
+}
+
+private extension TodoContextMenuViewController {
+    static func makePlaceholderViewModel() -> TodoContextMenuViewModel {
+        TodoContextMenuViewModel(title: "", details: nil, date: "", isCompleted: false)
+    }
+
+    func configurePresentationStyle() {
+        modalPresentationStyle = .overFullScreen
+        modalTransitionStyle = .crossDissolve
     }
 }
 
@@ -361,6 +374,16 @@ private struct MenuActionConfiguration {
     let showsSeparator: Bool
     let selector: Selector
     let accessibilityIdentifier: String
+
+    static let placeholder = MenuActionConfiguration(
+        title: "",
+        icon: .edit,
+        textColor: UIColor.appBlack,
+        iconTint: UIColor.appBlack,
+        showsSeparator: false,
+        selector: #selector(UIView.layoutSubviews),
+        accessibilityIdentifier: "context.placeholder"
+    )
 }
 
 /// Типы иконок, доступные для действий меню
@@ -378,15 +401,21 @@ private final class MenuActionButton: UIButton {
     init(configuration: MenuActionConfiguration) {
         self.actionConfiguration = configuration
         super.init(frame: .zero)
-        translatesAutoresizingMaskIntoConstraints = false
-        accessibilityLabel = configuration.title
-        setupConfiguration()
-        setupSeparator()
-        setupHighlightHandler()
+        commonInit()
     }
 
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        self.actionConfiguration = .placeholder
+        super.init(coder: coder)
+        commonInit()
+    }
+
+    private func commonInit() {
+        translatesAutoresizingMaskIntoConstraints = false
+        accessibilityLabel = actionConfiguration.title
+        setupConfiguration()
+        setupSeparator()
+        setupHighlightHandler()
     }
 
     /// Формируем конфигурацию кнопки, чтобы шрифт и иконка совпадали с макетом
@@ -732,4 +761,11 @@ private enum MenuIconFactory {
     }
 }
 
+#if DEBUG
+extension TodoContextMenuViewController {
+    func instantiateMenuActionButtonForTests(using coder: NSCoder) -> UIButton? {
+        MenuActionButton(coder: coder)
+    }
+}
+#endif
 

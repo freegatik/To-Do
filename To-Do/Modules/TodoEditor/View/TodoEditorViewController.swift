@@ -121,6 +121,7 @@ final class TodoEditorViewController: UIViewController {
 
 #if DEBUG
     private(set) var lastExitConfirmationHandlers: (save: (() -> Void)?, discard: (() -> Void)?) = (nil, nil)
+    private(set) var lastAlertActionHandlers: [ExitSelectionForTests: (() -> Void)] = [:]
     static var popoverFallbackHandler: ((UIAlertController, UIButton) -> Void)?
 #endif
 
@@ -371,19 +372,37 @@ extension TodoEditorViewController: TodoEditorViewProtocol {
         )
 
         if let saveWrapper {
-            alert.addAction(UIAlertAction(title: "Сохранить", style: .default) { [weak self] _ in
+            let actionHandler: () -> Void = { [weak self] in
                 self?.handleExitSelection(.save(saveWrapper))
+            }
+            alert.addAction(UIAlertAction(title: "Сохранить", style: .default) { _ in
+                actionHandler()
             })
+#if DEBUG
+            lastAlertActionHandlers[.save] = actionHandler
+#endif
         }
 
         let discardTitle = canSave ? "Не сохранять" : "Выйти без сохранения"
-        alert.addAction(UIAlertAction(title: discardTitle, style: .destructive) { [weak self] _ in
+        let discardHandler: () -> Void = { [weak self] in
             self?.handleExitSelection(.discard(discardWrapper))
+        }
+        alert.addAction(UIAlertAction(title: discardTitle, style: .destructive) { _ in
+            discardHandler()
         })
+#if DEBUG
+        lastAlertActionHandlers[.discard] = discardHandler
+#endif
 
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel) { [weak self] _ in
+        let cancelHandler: () -> Void = { [weak self] in
             self?.handleExitSelection(.cancel)
+        }
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel) { _ in
+            cancelHandler()
         })
+#if DEBUG
+        lastAlertActionHandlers[.cancel] = cancelHandler
+#endif
 
         if let popover = alert.popoverPresentationController {
             popover.sourceView = backButton
@@ -414,6 +433,7 @@ extension TodoEditorViewController: TodoEditorViewProtocol {
         }
 #if DEBUG
         lastExitConfirmationHandlers = (nil, nil)
+        lastAlertActionHandlers.removeAll()
 #endif
     }
 }
@@ -480,6 +500,13 @@ extension TodoEditorViewController {
 
     func triggerExitDiscardHandlerForTests() {
         performExitSelectionForTests(.discard)
+    }
+
+    @discardableResult
+    func triggerAlertActionHandlerForTests(_ selection: ExitSelectionForTests) -> Bool {
+        guard let handler = lastAlertActionHandlers[selection] else { return false }
+        handler()
+        return true
     }
 }
 #endif

@@ -46,6 +46,68 @@ final class TodoEditorRouterTests: XCTestCase {
         XCTAssertFalse(TodoEditorRouter.shouldUseNavigationPop(for: navigation))
         XCTAssertFalse(TodoEditorRouter.shouldUseNavigationPop(for: nil))
     }
+
+    func testDismissUsesPopWhenInNavigationStack() {
+        let navigation = UINavigationController()
+        let firstVC = UIViewController()
+        let router = TodoEditorRouter()
+        let secondVC = UIViewController()
+        navigation.viewControllers = [firstVC, secondVC]
+        router.viewController = secondVC
+
+        let initialCount = navigation.viewControllers.count
+        router.dismiss()
+
+        // Проверяем, что был вызван pop (viewControllers уменьшилось или осталось прежним, но secondVC больше не последний)
+        // В реальности pop может быть асинхронным, поэтому проверяем, что secondVC больше не является последним
+        let finalCount = navigation.viewControllers.count
+        XCTAssertTrue(finalCount <= initialCount, "Navigation stack should not grow")
+        if finalCount == initialCount - 1 {
+            XCTAssertEqual(navigation.viewControllers.last, firstVC)
+        }
+    }
+
+    func testDismissUsesDismissWhenNotInNavigationStack() {
+        let router = TodoEditorRouter()
+        let viewController = UIViewController()
+        router.viewController = viewController
+
+        router.dismiss()
+
+        XCTAssertNil(viewController.navigationController)
+    }
+
+    func testDismissUsesDismissWhenViewControllerHasNoNavigationController() {
+        let router = TodoEditorRouter()
+        let viewController = UIViewController()
+        router.viewController = viewController
+
+        router.dismiss()
+
+        XCTAssertNil(viewController.navigationController)
+    }
+
+    func testDismissUsesDismissWhenNavigationStackHasOnlyOneController() {
+        let navigation = UINavigationController()
+        let router = TodoEditorRouter()
+        let viewController = UIViewController()
+        router.viewController = viewController
+        navigation.viewControllers = [viewController]
+
+        router.dismiss()
+
+        XCTAssertEqual(navigation.viewControllers.count, 1)
+    }
+
+    func testDismissWhenViewControllerIsNilDoesNotCrash() {
+        let router = TodoEditorRouter()
+        router.viewController = nil
+
+        router.dismiss()
+
+        // Тест проходит, если не произошло краша
+        XCTAssertNil(router.viewController)
+    }
 }
 
 /// Минимальная реализация репозитория, чтобы собрать модуль

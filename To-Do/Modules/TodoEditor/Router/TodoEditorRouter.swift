@@ -7,16 +7,16 @@
 
 import UIKit
 
-/// Роутер редактора закрывает экран
+// Роутер редактора закрывает экран
 protocol TodoEditorRouterProtocol: AnyObject {
     func dismiss()
 }
 
-/// Реализация роутера редактора
+// Реализация роутера редактора
 final class TodoEditorRouter: TodoEditorRouterProtocol {
     weak var viewController: UIViewController?
 
-    /// Собираем модуль редактора под конкретный режим
+    // Собираем модуль редактора под конкретный режим
     static func buildModule(
         mode: TodoEditorMode,
         repository: TodoRepositoryProtocol,
@@ -48,7 +48,7 @@ final class TodoEditorRouter: TodoEditorRouterProtocol {
         }
     }
 
-    /// Выделяем условие в отдельный метод для удобства тестирования
+    // Выделяем условие в отдельный метод для удобства тестирования
     static func shouldUseNavigationPop(for navigationController: UINavigationController?) -> Bool {
         guard let navigationController else { return false }
         return navigationController.viewControllers.count > 1

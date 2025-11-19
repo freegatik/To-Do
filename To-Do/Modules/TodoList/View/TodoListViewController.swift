@@ -223,7 +223,7 @@ final class TodoListViewController: UIViewController {
         SFSpeechRecognizer(locale: Locale(identifier: "ru-RU"))
     }
     var audioEngineFactory: () -> AudioEngineProtocol = { AVAudioEngine() }
-    var recognitionRequestFactory: () -> SFSpeechAudioBufferRecognitionRequest = { SFSpeechAudioBufferRecognitionRequest() }
+    var recognitionRequestFactory: () -> SFSpeechAudioBufferRecognitionRequest? = { SFSpeechAudioBufferRecognitionRequest() }
     var recognitionTaskFactory: (
         SpeechRecognizerProtocol,
         SFSpeechRecognitionRequest,
@@ -709,7 +709,16 @@ extension TodoListViewController {
     }
 
     var suppressSelectionForRowForTests: IndexPath? {
-        suppressSelectionForRow
+        get { suppressSelectionForRow }
+        set { suppressSelectionForRow = newValue }
+    }
+
+    func setContextMenuControllerForTests(_ controller: TodoContextMenuViewController?) {
+        contextMenuController = controller
+    }
+
+    var contextMenuControllerForTests: TodoContextMenuViewController? {
+        contextMenuController
     }
 }
 #endif
@@ -952,4 +961,14 @@ extension TodoListViewController {
         presenter.updateSearchQuery(text)
     }
 }
+#if DEBUG
+extension TodoListViewController {
+    var bottomBarHeightConstraintForTests: NSLayoutConstraint? { bottomBarHeightConstraint }
+    var bottomFadeHeightConstraintForTests: NSLayoutConstraint? { bottomFadeHeightConstraint }
+
+    func updateBottomAreaLayoutForTests() {
+        updateBottomAreaLayoutIfNeeded()
+    }
+}
+#endif
 

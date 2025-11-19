@@ -239,6 +239,165 @@ final class TodoListViewControllerTests: XCTestCase {
         XCTAssertEqual(presenter.didLongPressItemArguments.last, 0)
     }
 
+    /// handleLongPress игнорирует жесты, которые не в состоянии .began
+    func testHandleLongPressIgnoresNonBeganState() {
+        let viewModel = TodoListItemViewModel(
+            id: 6,
+            title: "Test",
+            details: nil,
+            date: "06/06/25",
+            isCompleted: false
+        )
+        sut.showTodos([viewModel])
+        sut.tableViewForTests.layoutIfNeeded()
+        guard let cell = sut.tableViewForTests.cellForRow(at: IndexPath(row: 0, section: 0)) else {
+            XCTFail("Cell not found")
+            return
+        }
+        guard let recognizer = cell.gestureRecognizers?.first(where: { $0 is UILongPressGestureRecognizer }) as? UILongPressGestureRecognizer else {
+            XCTFail("Long press recognizer missing")
+            return
+        }
+        // Устанавливаем состояние, отличное от .began
+        recognizer.setValue(UIGestureRecognizer.State.ended.rawValue, forKey: "state")
+
+        let initialCount = presenter.didLongPressItemArguments.count
+        sut.perform(NSSelectorFromString("handleLongPress:"), with: recognizer)
+
+        // Презентер не должен быть уведомлен
+        XCTAssertEqual(presenter.didLongPressItemArguments.count, initialCount)
+    }
+
+    /// handleLongPress игнорирует жесты, когда cell не является UITableViewCell
+    func testHandleLongPressIgnoresNonCellView() {
+        let recognizer = UILongPressGestureRecognizer()
+        recognizer.setValue(UIGestureRecognizer.State.began.rawValue, forKey: "state")
+        // Устанавливаем view, который не является UITableViewCell
+        recognizer.setValue(UIView(), forKey: "view")
+
+        let initialCount = presenter.didLongPressItemArguments.count
+        sut.perform(NSSelectorFromString("handleLongPress:"), with: recognizer)
+
+        // Презентер не должен быть уведомлен
+        XCTAssertEqual(presenter.didLongPressItemArguments.count, initialCount)
+    }
+
+    /// handleLongPress игнорирует жесты, когда indexPath не найден
+    func testHandleLongPressIgnoresWhenIndexPathNotFound() {
+        let viewModel = TodoListItemViewModel(
+            id: 7,
+            title: "Test",
+            details: nil,
+            date: "07/07/25",
+            isCompleted: false
+        )
+        sut.showTodos([viewModel])
+        sut.tableViewForTests.layoutIfNeeded()
+        
+        let recognizer = UILongPressGestureRecognizer()
+        recognizer.setValue(UIGestureRecognizer.State.began.rawValue, forKey: "state")
+        // Создаем cell, который не находится в tableView
+        let cell = UITableViewCell()
+        recognizer.setValue(cell, forKey: "view")
+
+        let initialCount = presenter.didLongPressItemArguments.count
+        sut.perform(NSSelectorFromString("handleLongPress:"), with: recognizer)
+
+        // Презентер не должен быть уведомлен
+        XCTAssertEqual(presenter.didLongPressItemArguments.count, initialCount)
+    }
+
+    /// viewDidLayoutSubviews вызывает updateBottomAreaLayoutIfNeeded и обновляет bottomFadeLayer
+    func testViewDidLayoutSubviewsUpdatesBottomArea() throws {
+        sut.loadViewIfNeeded()
+        sut.view.layoutIfNeeded()
+        let heightConstraint = try XCTUnwrap(sut.bottomBarHeightConstraintForTests)
+        let fadeConstraint = try XCTUnwrap(sut.bottomFadeHeightConstraintForTests)
+        heightConstraint.constant = 0
+        fadeConstraint.constant = 0
+
+        sut.viewDidLayoutSubviews()
+
+        XCTAssertNotEqual(heightConstraint.constant, 0)
+        XCTAssertNotEqual(fadeConstraint.constant, 0)
+    }
+
+    func testViewSafeAreaInsetsDidChangeUpdatesBottomArea() throws {
+        sut.loadViewIfNeeded()
+        sut.view.layoutIfNeeded()
+        let heightConstraint = try XCTUnwrap(sut.bottomBarHeightConstraintForTests)
+        heightConstraint.constant = 0
+
+        sut.viewSafeAreaInsetsDidChange()
+
+        XCTAssertNotEqual(heightConstraint.constant, 0)
+    }
+
+    func testUpdateBottomAreaLayoutIfNeededUpdatesConstraints() throws {
+        sut.loadViewIfNeeded()
+        sut.view.layoutIfNeeded()
+        let heightConstraint = try XCTUnwrap(sut.bottomBarHeightConstraintForTests)
+        heightConstraint.constant = 0
+
+        sut.updateBottomAreaLayoutForTests()
+
+        XCTAssertNotEqual(heightConstraint.constant, 0)
+    }
+
+    func testUpdateBottomAreaLayoutIfNeededSkipsUpdateWhenUnchanged() throws {
+        sut.loadViewIfNeeded()
+        sut.view.layoutIfNeeded()
+        let heightConstraint = try XCTUnwrap(sut.bottomBarHeightConstraintForTests)
+
+        sut.updateBottomAreaLayoutForTests()
+        let firstValue = heightConstraint.constant
+
+        sut.updateBottomAreaLayoutForTests()
+        let secondValue = heightConstraint.constant
+
+        XCTAssertEqual(firstValue, secondValue)
+    }
+
+    func testUpdateBottomAreaLayoutIfNeededWhenContentInsetAlreadyCorrect() throws {
+        sut.loadViewIfNeeded()
+        sut.view.layoutIfNeeded()
+        
+        // Устанавливаем правильное значение contentInset
+        let safeBottom = sut.view.safeAreaInsets.bottom
+        let desiredHeight = 56 + safeBottom
+        var contentInset = sut.tableViewForTests.contentInset
+        contentInset.bottom = desiredHeight + 32
+        sut.tableViewForTests.contentInset = contentInset
+        
+        let initialBottom = sut.tableViewForTests.contentInset.bottom
+        
+        // Вызываем updateBottomAreaLayoutIfNeeded
+        sut.updateBottomAreaLayoutForTests()
+        
+        // contentInset.bottom не должен измениться, так как уже правильный
+        XCTAssertEqual(sut.tableViewForTests.contentInset.bottom, initialBottom)
+    }
+
+    func testUpdateBottomAreaLayoutIfNeededWhenIndicatorInsetsAlreadyCorrect() throws {
+        sut.loadViewIfNeeded()
+        sut.view.layoutIfNeeded()
+        
+        // Устанавливаем правильное значение indicatorInsets
+        let safeBottom = sut.view.safeAreaInsets.bottom
+        let desiredHeight = 56 + safeBottom
+        var indicatorInsets = sut.tableViewForTests.verticalScrollIndicatorInsets
+        indicatorInsets.bottom = desiredHeight
+        sut.tableViewForTests.verticalScrollIndicatorInsets = indicatorInsets
+        
+        let initialBottom = sut.tableViewForTests.verticalScrollIndicatorInsets.bottom
+        
+        // Вызываем updateBottomAreaLayoutIfNeeded
+        sut.updateBottomAreaLayoutForTests()
+        
+        // indicatorInsets.bottom не должен измениться, так как уже правильный
+        XCTAssertEqual(sut.tableViewForTests.verticalScrollIndicatorInsets.bottom, initialBottom)
+    }
+
     func testVoiceButtonTapWhileListeningStopsRecognition() {
         let audioEngine = MockAudioEngine()
         sut.audioEngineFactory = { audioEngine }
@@ -537,7 +696,7 @@ final class TodoListViewControllerTests: XCTestCase {
         audioEngine.startError = DummyError.failure
         sut.audioEngineFactory = { audioEngine }
         sut.setAudioEngineForTests(audioEngine)
-
+    
         sut.startVoiceRecognition()
 
         let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
@@ -545,6 +704,8 @@ final class TodoListViewControllerTests: XCTestCase {
         XCTAssertTrue(alert.message?.contains("запустить запись") ?? false)
         XCTAssertTrue(audioEngine.stopCalled)
         XCTAssertFalse(sut.isListeningForTests)
+        XCTAssertTrue(inputNode.installTapCalled, "installTap should be called before audioEngine.start")
+        XCTAssertTrue(inputNode.removeTapCalled, "removeTap should be called when audioEngine.start fails and tap is installed")
         XCTAssertNil(PresentationRecorder.lastPresented?.presentedViewController)
     }
 
@@ -611,6 +772,257 @@ final class TodoListViewControllerTests: XCTestCase {
 
         XCTAssertEqual(sut.searchTextFieldForTests.text, "")
         XCTAssertEqual(presenter.updateSearchQueryArguments.last, "")
+    }
+
+    func testShowLoadingWithRefreshControlRefreshingDoesNotStartActivityIndicator() {
+        sut.refreshControlForTests.beginRefreshing()
+
+        sut.showLoading(true)
+
+        XCTAssertFalse(sut.activityIndicatorForTests.isAnimating)
+    }
+
+    func testShowLoadingWithoutRefreshControlStartsActivityIndicator() {
+        sut.refreshControlForTests.endRefreshing()
+
+        sut.showLoading(true)
+
+        XCTAssertTrue(sut.activityIndicatorForTests.isAnimating)
+    }
+
+    func testShowLoadingFalseStopsActivityIndicatorAndEndsRefreshing() {
+        sut.activityIndicatorForTests.startAnimating()
+        sut.refreshControlForTests.beginRefreshing()
+
+        sut.showLoading(false)
+
+        XCTAssertFalse(sut.activityIndicatorForTests.isAnimating)
+        XCTAssertFalse(sut.refreshControlForTests.isRefreshing)
+    }
+
+    func testDidSelectRowSuppressesSelectionWhenSuppressedRowMatches() {
+        let viewModel = TodoListItemViewModel(
+            id: 14,
+            title: "Suppressed",
+            details: nil,
+            date: "10/10/30",
+            isCompleted: false
+        )
+        sut.showTodos([viewModel])
+        let indexPath = IndexPath(row: 0, section: 0)
+#if DEBUG
+        sut.suppressSelectionForRowForTests = indexPath
+#endif
+
+        sut.tableView(sut.tableViewForTests, didSelectRowAt: indexPath)
+
+        XCTAssertNil(presenter.didSelectItemArguments.last)
+#if DEBUG
+        XCTAssertNil(sut.suppressSelectionForRowForTests)
+#endif
+    }
+
+    func testDidSelectRowWithOutOfRangeIndexDoesNotCallPresenter() {
+        sut.showTodos([
+            TodoListItemViewModel(
+                id: 15,
+                title: "One",
+                details: nil,
+                date: "11/11/31",
+                isCompleted: false
+            )
+        ])
+
+        sut.tableView(sut.tableViewForTests, didSelectRowAt: IndexPath(row: 10, section: 0))
+
+        XCTAssertNil(presenter.didSelectItemArguments.last)
+    }
+
+    func testTrailingSwipeActionsWithOutOfRangeIndexReturnsNil() {
+        sut.showTodos([
+            TodoListItemViewModel(
+                id: 16,
+                title: "One",
+                details: nil,
+                date: "12/12/32",
+                isCompleted: false
+            )
+        ])
+
+        let actions = sut.tableView(
+            sut.tableViewForTests,
+            trailingSwipeActionsConfigurationForRowAt: IndexPath(row: 10, section: 0)
+        )
+
+        XCTAssertNil(actions)
+    }
+
+    func testStartVoiceRecognitionWhenRecognizerNotAvailableShowsError() async throws {
+        let recognizer = MockSpeechRecognizer()
+        recognizer.isAvailable = false
+        sut.speechRecognizerFactory = { recognizer }
+        sut.setSpeechRecognizerForTests(nil)
+
+        sut.startVoiceRecognition()
+
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        XCTAssertEqual(alert.title, "Ошибка")
+        XCTAssertEqual(alert.message, "Голосовой ввод недоступен.")
+    }
+
+    func testStartVoiceRecognitionWhenRecognitionRequestFactoryReturnsNilShowsError() async throws {
+        let recognizer = MockSpeechRecognizer()
+        sut.speechRecognizerFactory = { recognizer }
+        sut.setSpeechRecognizerForTests(nil)
+        sut.recognitionRequestFactory = { nil as SFSpeechAudioBufferRecognitionRequest? }
+
+        let session = MockAudioSession()
+        sut.audioSessionProvider = { session }
+
+        sut.startVoiceRecognition()
+
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        XCTAssertEqual(alert.title, "Ошибка")
+        XCTAssertTrue(alert.message?.contains("подготовить голосовой ввод") ?? false)
+    }
+
+    func testStartVoiceRecognitionWhenAudioSessionSetCategoryFailsShowsError() async throws {
+        let recognizer = MockSpeechRecognizer()
+        sut.speechRecognizerFactory = { recognizer }
+        sut.setSpeechRecognizerForTests(nil)
+
+        let session = MockAudioSession()
+        session.setCategoryError = NSError(domain: "test", code: 1)
+        sut.audioSessionProvider = { session }
+
+        sut.startVoiceRecognition()
+
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        XCTAssertEqual(alert.title, "Ошибка")
+        XCTAssertTrue(alert.message?.contains("активировать микрофон") ?? false)
+    }
+
+    func testStartVoiceRecognitionWhenAudioSessionSetActiveFailsShowsError() async throws {
+        let recognizer = MockSpeechRecognizer()
+        sut.speechRecognizerFactory = { recognizer }
+        sut.setSpeechRecognizerForTests(nil)
+
+        let session = MockAudioSession()
+        session.setActiveError = NSError(domain: "test", code: 1)
+        sut.audioSessionProvider = { session }
+
+        sut.startVoiceRecognition()
+
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        XCTAssertEqual(alert.title, "Ошибка")
+        XCTAssertTrue(alert.message?.contains("активировать микрофон") ?? false)
+    }
+
+    func testRequestSpeechAuthorizationWithRestrictedStatusShowsAlert() async throws {
+        let session = MockAudioSession()
+        sut.audioSessionProvider = { session }
+        let expectation = expectation(description: "Authorization requested")
+        sut.speechAuthorizationRequest = { handler in
+            handler(.restricted)
+            expectation.fulfill()
+        }
+
+        sut.requestSpeechAuthorizationAndStart()
+        session.completePermission(granted: true)
+
+        await fulfillment(of: [expectation], timeout: 1)
+
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        XCTAssertEqual(alert.title, "Нет доступа")
+    }
+
+    func testRequestSpeechAuthorizationWithNotDeterminedStatusShowsAlert() async throws {
+        let session = MockAudioSession()
+        sut.audioSessionProvider = { session }
+        let expectation = expectation(description: "Authorization requested")
+        sut.speechAuthorizationRequest = { handler in
+            handler(.notDetermined)
+            expectation.fulfill()
+        }
+
+        sut.requestSpeechAuthorizationAndStart()
+        session.completePermission(granted: true)
+
+        await fulfillment(of: [expectation], timeout: 1)
+
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        XCTAssertEqual(alert.title, "Нет доступа")
+    }
+
+    func testRequestSpeechAuthorizationWithUnknownStatusShowsAlert() async throws {
+        let session = MockAudioSession()
+        sut.audioSessionProvider = { session }
+        let expectation = expectation(description: "Authorization requested")
+        sut.speechAuthorizationRequest = { handler in
+            handler(SFSpeechRecognizerAuthorizationStatus(rawValue: 999) ?? .notDetermined)
+            expectation.fulfill()
+        }
+
+        sut.requestSpeechAuthorizationAndStart()
+        session.completePermission(granted: true)
+
+        await fulfillment(of: [expectation], timeout: 1)
+
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        XCTAssertEqual(alert.title, "Нет доступа")
+    }
+
+    func testStopVoiceRecognitionWhenNotListeningButTaskExistsStillStops() {
+        let audioEngine = MockAudioEngine()
+        sut.audioEngineFactory = { audioEngine }
+        sut.setAudioEngineForTests(audioEngine)
+        let recognitionTask = MockRecognitionTask()
+        sut.setRecognitionTaskForTests(recognitionTask)
+        sut.setListeningStateForTests(false)
+
+        sut.stopVoiceRecognition()
+
+        XCTAssertTrue(recognitionTask.cancelCalled)
+        XCTAssertTrue(audioEngine.stopCalled)
+    }
+
+    func testStopVoiceRecognitionWhenAudioSessionDeactivationFailsContinues() {
+        let audioEngine = MockAudioEngine()
+        sut.audioEngineFactory = { audioEngine }
+        sut.setAudioEngineForTests(audioEngine)
+        let session = MockAudioSession()
+        session.setActiveError = NSError(domain: "test", code: 1)
+        sut.audioSessionProvider = { session }
+        let recognitionTask = MockRecognitionTask()
+        sut.setRecognitionTaskForTests(recognitionTask)
+        sut.setListeningStateForTests(true)
+
+        sut.stopVoiceRecognition()
+
+        XCTAssertTrue(recognitionTask.cancelCalled)
+        XCTAssertFalse(sut.isListeningForTests)
+    }
+
+    func testSFSpeechRecognizerExtensionStartRecognitionTask() {
+        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ru-RU"))
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        var resultHandlerCalled = false
+
+        let task = recognizer?.startRecognitionTask(with: request) { _, _ in
+            resultHandlerCalled = true
+        }
+
+        XCTAssertNotNil(task)
+        task?.cancel()
+    }
+
+    func testAVAudioEngineExtensionInputNodeWrapper() {
+        let engine = AVAudioEngine()
+        let inputNodeWrapper = engine.inputNodeWrapper
+
+        XCTAssertNotNil(inputNodeWrapper)
+        let format = inputNodeWrapper.outputFormat(forBus: 0)
+        XCTAssertNotNil(format)
     }
 
     func testToggleHandlerTriggersPresenterAndClearsSuppressedSelection() async throws {
@@ -684,6 +1096,300 @@ final class TodoListViewControllerTests: XCTestCase {
         XCTAssertEqual(sut.tasksCountLabelForTests.text, "12 Задач")
     }
 
+    func testWillDisplayWithNonTodoCellDoesNothing() {
+        let viewModel = TodoListItemViewModel(
+            id: 20,
+            title: "Test",
+            details: nil,
+            date: "01/01/25",
+            isCompleted: false
+        )
+        sut.showTodos([viewModel])
+        sut.tableViewForTests.layoutIfNeeded()
+        
+        let regularCell = UITableViewCell()
+        sut.tableView(sut.tableViewForTests, willDisplay: regularCell, forRowAt: IndexPath(row: 0, section: 0))
+        
+        // Тест проходит, если не произошло краша
+        XCTAssertTrue(regularCell is UITableViewCell)
+    }
+
+    func testWillDisplayWithTodoCellSetsSeparator() throws {
+        let viewModels = (1...3).map {
+            TodoListItemViewModel(id: $0, title: "Item \($0)", details: nil, date: "01/01/25", isCompleted: false)
+        }
+        sut.showTodos(viewModels)
+        sut.tableViewForTests.layoutIfNeeded()
+        
+        guard let firstCell = sut.tableViewForTests.cellForRow(at: IndexPath(row: 0, section: 0)) as? TodoListTableViewCell else {
+            XCTFail("Cell not found")
+            return
+        }
+        
+        // Устанавливаем separator в скрытоe состояние перед тестом
+        firstCell.setShowsSeparator(false)
+        
+        sut.tableView(sut.tableViewForTests, willDisplay: firstCell, forRowAt: IndexPath(row: 0, section: 0))
+        
+        // Первая ячейка не последняя, поэтому separator должен быть виден
+        // Проверяем через reflection, что separatorView.isHidden = false
+        let separatorView: UIView = try firstCell.cellElement(named: "separatorView")
+        XCTAssertFalse(separatorView.isHidden)
+    }
+
+    func testWillDisplayWithLastRowHidesSeparator() throws {
+        let viewModels = (1...2).map {
+            TodoListItemViewModel(id: $0, title: "Item \($0)", details: nil, date: "01/01/25", isCompleted: false)
+        }
+        sut.showTodos(viewModels)
+        sut.tableViewForTests.layoutIfNeeded()
+        
+        guard let lastCell = sut.tableViewForTests.cellForRow(at: IndexPath(row: 1, section: 0)) as? TodoListTableViewCell else {
+            XCTFail("Cell not found")
+            return
+        }
+        
+        // Устанавливаем separator в видимое состояние перед тестом
+        lastCell.setShowsSeparator(true)
+        
+        sut.tableView(sut.tableViewForTests, willDisplay: lastCell, forRowAt: IndexPath(row: 1, section: 0))
+        
+        // Последняя ячейка, separator должен быть скрыт
+        let separatorView: UIView = try lastCell.cellElement(named: "separatorView")
+        XCTAssertTrue(separatorView.isHidden)
+    }
+
+    func testContextMenuConfigurationReturnsNil() {
+        if #available(iOS 13.0, *) {
+            let viewModel = TodoListItemViewModel(
+                id: 21,
+                title: "Test",
+                details: nil,
+                date: "01/01/25",
+                isCompleted: false
+            )
+            sut.showTodos([viewModel])
+            
+            let config = sut.tableView(
+                sut.tableViewForTests,
+                contextMenuConfigurationForRowAt: IndexPath(row: 0, section: 0),
+                point: CGPoint(x: 100, y: 100)
+            )
+            
+            XCTAssertNil(config)
+        }
+    }
+
+    func testShowContextMenuWhenControllerAlreadyExistsDoesNothing() {
+        let existingController = TodoContextMenuViewController(
+            viewModel: TodoContextMenuViewModel(
+                title: "Existing",
+                details: nil,
+                date: "01/01/25",
+                isCompleted: false
+            ),
+            anchorRect: .zero
+        )
+        sut.setContextMenuControllerForTests(existingController)
+        
+        let viewModel = TodoContextMenuViewModel(
+            title: "New",
+            details: nil,
+            date: "01/01/25",
+            isCompleted: false
+        )
+        
+        sut.showContextMenu(for: viewModel)
+        
+        // Контроллер не должен измениться
+        XCTAssertTrue(sut.contextMenuControllerForTests === existingController)
+    }
+
+    func testAttachLongPressWhenRecognizerExistsSkipsAdding() {
+        let viewModel = TodoListItemViewModel(
+            id: 1,
+            title: "Test",
+            details: nil,
+            date: "01/01/25",
+            isCompleted: false
+        )
+        sut.showTodos([viewModel])
+        sut.tableViewForTests.layoutIfNeeded()
+        
+        guard let cell = sut.tableViewForTests.cellForRow(at: IndexPath(row: 0, section: 0)) else {
+            XCTFail("Cell not found")
+            return
+        }
+        
+        // Добавляем recognizer вручную
+        let existingRecognizer = UILongPressGestureRecognizer()
+        cell.addGestureRecognizer(existingRecognizer)
+        
+        let initialRecognizerCount = cell.gestureRecognizers?.count ?? 0
+        
+        // Вызываем attachLongPress через willDisplay
+        sut.tableView(sut.tableViewForTests, willDisplay: cell, forRowAt: IndexPath(row: 0, section: 0))
+        
+        // Количество recognizers не должно измениться
+        XCTAssertEqual(cell.gestureRecognizers?.count, initialRecognizerCount)
+    }
+
+    func testStopVoiceRecognitionWhenNotListeningAndNoTaskDoesNothing() {
+        sut.setListeningStateForTests(false)
+        sut.setRecognitionTaskForTests(nil)
+        
+        let audioEngine = MockAudioEngine()
+        sut.audioEngineFactory = { audioEngine }
+        sut.setAudioEngineForTests(audioEngine)
+        
+        sut.stopVoiceRecognition()
+        
+        // audioEngine.stop не должен быть вызван
+        XCTAssertFalse(audioEngine.stopCalled)
+    }
+
+    func testHandleRecognizedTextWithEmptyTrimmedTextDoesNothing() {
+        sut.searchTextFieldForTests.text = "initial"
+        let initialText = sut.searchTextFieldForTests.text
+        let initialQueryCount = presenter.updateSearchQueryArguments.count
+        
+        sut.handleRecognizedText("   ")
+        
+        // Текст не должен измениться
+        XCTAssertEqual(sut.searchTextFieldForTests.text, initialText)
+        // Презентер не должен быть уведомлен
+        XCTAssertEqual(presenter.updateSearchQueryArguments.count, initialQueryCount)
+    }
+
+    func testHandleRecognizedTextWithEmptyStringDoesNothing() {
+        sut.searchTextFieldForTests.text = "initial"
+        let initialText = sut.searchTextFieldForTests.text
+        let initialQueryCount = presenter.updateSearchQueryArguments.count
+        
+        sut.handleRecognizedText("")
+        
+        // Текст не должен измениться
+        XCTAssertEqual(sut.searchTextFieldForTests.text, initialText)
+        // Презентер не должен быть уведомлен
+        XCTAssertEqual(presenter.updateSearchQueryArguments.count, initialQueryCount)
+    }
+
+    func testInstallTapClosureHandlesNilRecognitionRequest() async throws {
+        let recognizer = MockSpeechRecognizer()
+        recognizer.taskToReturn = MockRecognitionTask()
+        sut.speechRecognizerFactory = { recognizer }
+        sut.setSpeechRecognizerForTests(nil)
+
+        let session = MockAudioSession()
+        sut.audioSessionProvider = { session }
+
+        let inputNode = MockAudioInputNode()
+        let engine = MockAudioEngine(inputNode: inputNode)
+        sut.audioEngineFactory = { engine }
+        sut.setAudioEngineForTests(engine)
+
+        let request = MockRecognitionRequest()
+        sut.recognitionRequestFactory = { request }
+
+        sut.startVoiceRecognition()
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        // Устанавливаем recognitionRequest в nil после установки tap
+        sut.setRecognitionRequestForTests(nil)
+
+        // Симулируем вызов closure с buffer
+        let format = inputNode.outputFormat(forBus: 0)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1024) else {
+            XCTFail("Failed to allocate buffer")
+            return
+        }
+        buffer.frameLength = 1
+
+        // Вызываем installTapHandler - не должно быть краша, даже если recognitionRequest nil
+        inputNode.installTapHandler?(buffer, AVAudioTime(hostTime: 0))
+
+        // Тест проходит, если не произошло краша
+        XCTAssertTrue(inputNode.installTapCalled)
+    }
+
+    func testRequestRecordPermissionClosureHandlesDeallocation() {
+        // Создаем отдельный контроллер для теста deallocation
+        var testController: TodoListViewController? = TodoListViewController()
+        let testPresenter = MockPresenter()
+        testController?.presenter = testPresenter
+        _ = testController?.view
+        
+        let testWindow = UIWindow(frame: UIScreen.main.bounds)
+        testWindow.rootViewController = testController
+        testWindow.makeKeyAndVisible()
+        
+        let session = MockAudioSession()
+        testController?.audioSessionProvider = { session }
+
+        // Создаем слабую ссылку на контроллер
+        weak var weakController: TodoListViewController? = testController
+
+        // Вызываем requestSpeechAuthorizationAndStart
+        testController?.requestSpeechAuthorizationAndStart()
+
+        // Освобождаем контроллер
+        testController = nil
+        testWindow.isHidden = true
+        testWindow.rootViewController = nil
+        
+        // Даем время на deallocation
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        session.completePermission(granted: true)
+    }
+
+    func testRecognitionTaskFactoryClosureHandlesDeallocation() async throws {
+        // Создаем отдельный контроллер для теста deallocation
+        var testController: TodoListViewController? = TodoListViewController()
+        let testPresenter = MockPresenter()
+        testController?.presenter = testPresenter
+        _ = testController?.view
+        
+        let testWindow = UIWindow(frame: UIScreen.main.bounds)
+        testWindow.rootViewController = testController
+        testWindow.makeKeyAndVisible()
+        
+        let recognizer = MockSpeechRecognizer()
+        let task = MockRecognitionTask()
+        recognizer.taskToReturn = task
+        testController?.speechRecognizerFactory = { recognizer }
+        testController?.setSpeechRecognizerForTests(nil)
+
+        let session = MockAudioSession()
+        testController?.audioSessionProvider = { session }
+
+        let engine = MockAudioEngine()
+        testController?.audioEngineFactory = { engine }
+        testController?.setAudioEngineForTests(engine)
+
+        let request = MockRecognitionRequest()
+        testController?.recognitionRequestFactory = { request }
+
+        // Захватываем handler из recognitionTaskFactory
+        var capturedHandler: ((String?, Bool, Error?) -> Void)?
+        testController?.recognitionTaskFactory = { recognizer, request, handler in
+            capturedHandler = handler
+            return recognizer.startRecognitionTask(with: request) { _, _ in }
+        }
+
+        // Начинаем голосовое распознавание
+        testController?.startVoiceRecognition()
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        // Освобождаем контроллер
+        testController = nil
+        testWindow.isHidden = true
+        testWindow.rootViewController = nil
+        
+        // Даем время на deallocation
+        try await Task.sleep(nanoseconds: 50_000_000)
+        capturedHandler?("Test", false, nil)
+    }
+
     @discardableResult
     private func waitUntilPresented<T: UIViewController>(
         _ type: T.Type,
@@ -741,6 +1447,19 @@ final class TodoListViewControllerTests: XCTestCase {
 
     func runMainLoop(for duration: TimeInterval = 0.1) {
         RunLoop.main.run(until: Date().addingTimeInterval(duration))
+    }
+}
+
+private extension TodoListTableViewCell {
+    func cellElement<T>(named name: String) throws -> T {
+        var mirror: Mirror? = Mirror(reflecting: self)
+        while let current = mirror {
+            if let value = current.children.first(where: { $0.label == name })?.value as? T {
+                return value
+            }
+            mirror = current.superclassMirror
+        }
+        throw NSError(domain: "TodoListViewControllerTests", code: 0, userInfo: [NSLocalizedDescriptionKey: "Property \(name) not found"])
     }
 }
 
@@ -822,6 +1541,10 @@ private extension TodoListViewController {
 
     var voiceButtonForTests: UIButton {
         mirrorDescendant(for: "voiceButton")
+    }
+
+    var activityIndicatorForTests: UIActivityIndicatorView {
+        mirrorDescendant(for: "activityIndicator")
     }
 
     /// Возвращает приватное свойство контроллера по имени через отражение

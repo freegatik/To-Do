@@ -204,7 +204,7 @@ private extension To_DoUITests {
 
     /// Ожидаем появления или исчезновения ячейки с заданным заголовком
     func waitForCell(in table: XCUIElement, withTitle title: String, shouldExist: Bool, timeout: TimeInterval = 8) {
-        let cell = table.cells.containing(.staticText, identifier: title).element
+            let cell = table.cells.containing(.staticText, identifier: title).element
         let predicate = NSPredicate(format: "exists == %@", NSNumber(value: shouldExist))
         let expectation = expectation(for: predicate, evaluatedWith: cell, handler: nil)
         wait(for: [expectation], timeout: timeout)

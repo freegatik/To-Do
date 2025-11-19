@@ -7,7 +7,7 @@
 
 import UIKit
 
-/// Точка входа, где инициализируем сцены приложения
+// Точка входа, где инициализируем сцены приложения
 @main
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(

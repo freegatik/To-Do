@@ -7,7 +7,7 @@
 
 import UIKit
 
-/// Палитра проекта, собранная в одном месте
+// Палитра проекта, собранная в одном месте
 extension UIColor {
     static let appBlack = UIColor(red: 4 / 255, green: 4 / 255, blue: 4 / 255, alpha: 1)
     static let appWhite = UIColor(red: 244 / 255, green: 244 / 255, blue: 244 / 255, alpha: 1)

@@ -156,6 +156,29 @@ struct TodoListPresenterTests {
     }
 
     @Test
+    /// handleContextAction не выполняет действий когда highlightedItem nil
+    func testHandleContextActionWhenHighlightedItemIsNilDoesNothing() {
+        let view = MockTodoListView()
+        let interactor = MockTodoListInteractor()
+        let router = MockTodoListRouter()
+        let presenter = TodoListPresenter(view: view, interactor: interactor, router: router)
+
+        // Не вызываем didLongPressItem, поэтому highlightedItem остается nil
+        let initialRouterCallCount = router.presentEditorCallCount
+        let initialShareCallCount = view.shareCallCount
+        let initialDeleteCallCount = interactor.deletedItems.count
+
+        presenter.handleContextAction(.edit)
+        presenter.handleContextAction(.share)
+        presenter.handleContextAction(.delete)
+
+        // Никакие действия не должны быть вызваны
+        #expect(router.presentEditorCallCount == initialRouterCallCount)
+        #expect(view.shareCallCount == initialShareCallCount)
+        #expect(interactor.deletedItems.count == initialDeleteCallCount)
+    }
+
+    @Test
     /// didFail записывает ошибку во view и скрывает индикатор загрузки
     func testDidFailShowsErrorAndStopsLoading() {
         let view = MockTodoListView()
@@ -342,6 +365,7 @@ private final class MockTodoListView: TodoListViewProtocol {
     var contextMenuModel: TodoContextMenuViewModel?
     var didDismissContextMenu = false
     var sharedText: String?
+    var shareCallCount = 0
 
     func setNavigationTitle(_ title: String) {
         navigationTitle = title
@@ -373,6 +397,7 @@ private final class MockTodoListView: TodoListViewProtocol {
 
     func share(text: String) {
         sharedText = text
+        shareCallCount += 1
     }
 }
 
@@ -400,9 +425,11 @@ private final class MockTodoListInteractor: TodoListInteractorInput {
 /// Роутер-заменитель для проверки передаваемых режимов открытия редактора
 private final class MockTodoListRouter: TodoListRouterProtocol {
     var lastMode: TodoEditorMode?
+    var presentEditorCallCount = 0
 
     func presentEditor(mode: TodoEditorMode, output: TodoEditorModuleOutput) {
         lastMode = mode
+        presentEditorCallCount += 1
     }
 }
 

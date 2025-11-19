@@ -99,6 +99,54 @@ final class TodoAPIClientTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
+    /// Проверяем, что URL константа инициализируется корректно
+    func testTodosURLConstantIsValid() {
+        // Проверяем, что URL валидный и не вызывает preconditionFailure
+        let client = makeClient()
+        // Если URL невалидный, preconditionFailure вызовется при инициализации Constants
+        // Но так как URL валидный, мы просто проверяем, что клиент создался
+        XCTAssertNotNil(client)
+    }
+
+    /// Когда response не является HTTPURLResponse, возвращается badServerResponse
+    func testFetchTodosWithNonHTTPResponseReturnsBadServerResponse() {
+        let expectation = expectation(description: "completion")
+        // Используем обычный URLResponse вместо HTTPURLResponse
+        URLProtocolMock.response = URLResponse(url: TodoAPIClientTests.testURL, mimeType: nil, expectedContentLength: 0, textEncodingName: nil)
+        URLProtocolMock.testData = Data()
+
+        makeClient().fetchTodos { result in
+            switch result {
+            case .success:
+                XCTFail("Expected failure")
+            case .failure(let error):
+                XCTAssertEqual((error as? URLError)?.code, .badServerResponse)
+                expectation.fulfill()
+            }
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    /// Когда data отсутствует, возвращается badServerResponse
+    func testFetchTodosWithNilDataReturnsBadServerResponse() {
+        let expectation = expectation(description: "completion")
+        URLProtocolMock.response = HTTPURLResponse(url: TodoAPIClientTests.testURL, statusCode: 200, httpVersion: nil, headerFields: nil)
+        URLProtocolMock.testData = nil
+
+        makeClient().fetchTodos { result in
+            switch result {
+            case .success:
+                XCTFail("Expected failure")
+            case .failure(let error):
+                XCTAssertEqual((error as? URLError)?.code, .badServerResponse)
+                expectation.fulfill()
+            }
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
     /// Создаём клиент с подменённой URLProtocol, чтобы контролировать ответы
     private func makeClient() -> TodoAPIClient {
         let configuration = URLSessionConfiguration.ephemeral

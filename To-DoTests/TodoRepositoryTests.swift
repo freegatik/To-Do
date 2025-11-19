@@ -343,6 +343,28 @@ final class TodoRepositoryTests: XCTestCase {
         XCTAssertEqual(apiClient.fetchCallCount, 1)
     }
 
+    /// countTodosValue обрабатывает ошибку и возвращает 0
+    func testCountTodosValueHandlesErrorCorrectly() async throws {
+#if DEBUG
+        let (repository, apiClient, _) = await makeRepository()
+        apiClient.result = .success([
+            TodoDTO(id: 1, todo: "Test", completed: false, userId: 1)
+        ])
+
+        // Устанавливаем ошибку для countTodosValue
+        TodoRepository.debugCountTodosError = RepositoryTestError.failure
+
+        // Вызываем loadInitialTodos, который использует countTodosValue
+        let items = try await loadInitialTodos(repository)
+
+        // Ошибка должна быть обработана, и count должен вернуть 0, что приведет к загрузке из API
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(apiClient.fetchCallCount, 1)
+        // debugCountTodosError должен быть очищен после использования
+        XCTAssertNil(TodoRepository.debugCountTodosError)
+#endif
+    }
+
     /// Ошибка сохранения стартовых данных приводит к failure
     func testLoadInitialTodosWhenSavingInitialDataFailsReturnsError() async {
         let failingStack = FailingCoreDataStack(throwOnSave: true)

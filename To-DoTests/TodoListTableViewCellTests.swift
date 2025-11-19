@@ -25,6 +25,16 @@ final class TodoListTableViewCellTests: XCTestCase {
         try await super.tearDown()
     }
 
+
+    private func makeEmptyCoder() throws -> NSKeyedUnarchiver {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.encode(0, forKey: "dummy")
+        archiver.finishEncoding()
+        let coder = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        coder.requiresSecureCoding = false
+        return coder
+    }
+
     /// Завершённая задача получает зачёркнутый текст и чекбокс
     func testConfigureForCompletedTodoAppliesStrikeThroughAndAccessibility() throws {
         let viewModel = TodoListItemViewModel(
@@ -141,12 +151,49 @@ final class TodoListTableViewCellTests: XCTestCase {
         XCTAssertTrue(hitView === statusButton, "hitTest should return status button for points slightly outside its bounds")
     }
 
-    func testInitWithCoderExists() {
-        let cellType = TodoListTableViewCell.self
-        XCTAssertTrue(
-            cellType.instancesRespond(to: #selector(TodoListTableViewCell.init(coder:))),
-            "init(coder:) should be implemented"
+    func testInitWithCoderInitializesSubviews() throws {
+        let coder = try makeEmptyCoder()
+        defer { coder.finishDecoding() }
+        let coderCell = try XCTUnwrap(TodoListTableViewCell(coder: coder))
+        coderCell.layoutIfNeeded()
+
+        let _: UILabel = try coderCell.element(named: "titleLabel")
+        let _: UIButton = try coderCell.element(named: "statusButton")
+    }
+
+    /// Когда details есть, detailsLabel.isHidden устанавливается в false
+    func testConfigureWithDetailsShowsDetailsLabel() throws {
+        let viewModel = TodoListItemViewModel(
+            id: 4,
+            title: "Task with details",
+            details: "Some details text",
+            date: "14.11.2025",
+            isCompleted: false
         )
+
+        cell.configure(with: viewModel)
+
+        let detailsLabel: UILabel = try cell.element(named: "detailsLabel")
+        XCTAssertFalse(detailsLabel.isHidden, "Details label should be visible when details are provided")
+        XCTAssertEqual(detailsLabel.text, "Some details text")
+    }
+
+    /// hitTest возвращает super.hitTest для точек вне расширенной области кнопки
+    func testHitTestReturnsSuperForPointsOutsideButtonArea() throws {
+        cell.layoutIfNeeded()
+        let statusButton: UIButton = try cell.element(named: "statusButton")
+        
+        // Точка внутри bounds ячейки, но далеко от кнопки (справа от кнопки)
+        // Кнопка находится слева (leadingAnchor + 20), поэтому точка справа не должна попадать в расширенную область
+        let farPoint = CGPoint(
+            x: cell.bounds.width - 10,  // Правая часть ячейки
+            y: cell.bounds.midY
+        )
+        let hitView = cell.hitTest(farPoint, with: nil)
+        
+        // Должен вернуться результат super.hitTest (обычно contentView или сама ячейка)
+        XCTAssertNotNil(hitView)
+        XCTAssertFalse(hitView === statusButton, "Points far from button should not hit the button")
     }
 }
 

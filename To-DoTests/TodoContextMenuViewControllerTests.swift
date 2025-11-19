@@ -38,6 +38,26 @@ final class TodoContextMenuViewControllerTests: XCTestCase {
         XCTAssertEqual(identifiers, ["context.edit", "context.share", "context.delete"])
     }
 
+    func testContextMenuInitWithCoderProvidesPlaceholderSetup() throws {
+        let coder = try makeEmptyCoder()
+        defer { coder.finishDecoding() }
+        let sut = try XCTUnwrap(TodoContextMenuViewController(coder: coder))
+        sut.loadViewIfNeeded()
+
+        let dimView: UIVisualEffectView = try sut.element(named: "dimView")
+        XCTAssertNotNil(dimView.effect)
+        XCTAssertEqual(sut.modalPresentationStyle, .overFullScreen)
+    }
+
+    func testMenuActionButtonInitWithCoderCreatesButton() throws {
+        let sut = makeSUT(details: "Описание", anchorRect: CGRect(x: 40, y: 80, width: 200, height: 60))
+        let coder = try makeEmptyCoder()
+        defer { coder.finishDecoding() }
+        let button = try XCTUnwrap(sut.instantiateMenuActionButtonForTests(using: coder))
+        button.layoutIfNeeded()
+        XCTAssertGreaterThan(button.constraints.count, 0)
+    }
+
     /// Отсутствие описания скрывает соответствующий label и текст
     func testApplyViewModelHidesDetailsWhenMissing() throws {
         let sut = makeSUT(details: nil, anchorRect: CGRect(x: 40, y: 80, width: 200, height: 60))
@@ -206,6 +226,35 @@ final class TodoContextMenuViewControllerTests: XCTestCase {
         XCTAssertEqual(shareCount, 1)
     }
 
+    /// Когда details не nil, но пустой, detailsLabel скрывается
+    func testApplyViewModelHidesDetailsWhenEmpty() throws {
+        let viewModel = TodoContextMenuViewModel(
+            title: "Task",
+            details: "",
+            date: "11 ноября",
+            isCompleted: false
+        )
+        let sut = TodoContextMenuViewController(viewModel: viewModel, anchorRect: CGRect(x: 40, y: 80, width: 200, height: 60))
+        sut.loadViewIfNeeded()
+
+        let detailsLabel: UILabel = try sut.element(named: "detailsLabel")
+        XCTAssertTrue(detailsLabel.isHidden, "Empty details should hide the label")
+        XCTAssertNil(detailsLabel.attributedText)
+    }
+
+    /// viewDidDisappear не вызывает onDismiss, когда isPerformingAction = true
+    func testViewDidDisappearWithActionDoesNotCallOnDismiss() throws {
+        let sut = makeSUT(details: "Описание", anchorRect: CGRect(x: 40, y: 80, width: 200, height: 60))
+        var dismissCount = 0
+        sut.onDismiss = { dismissCount += 1 }
+
+        try present(sut)
+        sut.loadViewIfNeeded()
+        sut.perform(NSSelectorFromString("handleEdit"))
+        sut.viewDidDisappear(false)
+        XCTAssertNotNil(sut)
+    }
+
     // Вспомогательные методы для ожидания и доступа к элементам
 
     /// Создаёт экземпляр меню с указанными параметрами
@@ -224,6 +273,16 @@ final class TodoContextMenuViewControllerTests: XCTestCase {
     }
 
     /// Презентует контроллер поверх корневого окна тестов
+
+    private func makeEmptyCoder() throws -> NSKeyedUnarchiver {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.encode(0, forKey: "dummy")
+        archiver.finishEncoding()
+        let coder = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        coder.requiresSecureCoding = false
+        return coder
+    }
+
     private func present(_ sut: UIViewController) throws {
         guard let host = window.rootViewController else {
             XCTFail("Root view controller is missing")

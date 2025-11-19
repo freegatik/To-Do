@@ -7,17 +7,17 @@
 
 import CoreData
 
-/// Простой протокол для работы с Core Data
+// Простой протокол для работы с Core Data
 protocol CoreDataStackProtocol {
-    /// Основной контекст для UI
+    // Основной контекст для UI
     var viewContext: NSManagedObjectContext { get }
-    /// Выполняем задачи на фоне
+    // Выполняем задачи на фоне
     func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void)
 }
 
-/// Базовая реализация Core Data
+// Базовая реализация Core Data
 final class CoreDataStack: CoreDataStackProtocol {
-    /// Синглтон для приложения
+    // Синглтон для приложения
     static let shared = CoreDataStack()
 
     let container: NSPersistentContainer

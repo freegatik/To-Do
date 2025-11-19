@@ -7,12 +7,12 @@
 
 import Foundation
 
-/// Обёртка ответа от dummyjson
+// Обёртка ответа от dummyjson
 struct TodoResponseDTO: Decodable, Sendable {
     let todos: [TodoDTO]
 }
 
-/// Сырые данные задачи из API
+// Сырые данные задачи из API
 struct TodoDTO: Decodable, Sendable {
     let id: Int
     let todo: String

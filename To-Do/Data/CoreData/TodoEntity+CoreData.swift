@@ -8,9 +8,9 @@
 import Foundation
 import CoreData
 
-/// Помощь при переводе между Core Data и моделью
+// Помощь при переводе между Core Data и моделью
 extension TodoEntity {
-    /// Копируем значения из модели в Core Data
+    // Копируем значения из модели в Core Data
     func update(with item: TodoItem) {
         id = item.id
         title = item.title
@@ -19,7 +19,7 @@ extension TodoEntity {
         isCompleted = item.isCompleted
     }
 
-    /// Собираем `TodoItem`, если поля заполнены
+    // Собираем `TodoItem`, если поля заполнены
     func asItem() -> TodoItem? {
         guard
             let title,

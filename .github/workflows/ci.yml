@@ -178,7 +178,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Codecov
-        if: success() && secrets.CODECOV_TOKEN != ''
+        if: ${{ success() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -25,6 +25,7 @@ struct TodoEditorViewModel {
     let createdAtText: String?
 }
 
+@MainActor
 protocol TodoEditorModuleOutput: AnyObject {
     func todoEditorDidFinish(with result: TodoEditorResult)
 }

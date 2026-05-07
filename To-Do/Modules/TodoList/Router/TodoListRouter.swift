@@ -7,10 +7,12 @@
 
 import UIKit
 
+@MainActor
 protocol TodoListRouterProtocol: AnyObject {
     func presentEditor(mode: TodoEditorMode, output: TodoEditorModuleOutput)
 }
 
+@MainActor
 final class TodoListRouter: TodoListRouterProtocol {
     weak var viewController: UIViewController?
 

@@ -20,6 +20,7 @@ final class TodoEditorRouter: TodoEditorRouterProtocol {
         self.dismissPerformer = dismissPerformer
     }
 
+    @MainActor
     static func buildModule(
         mode: TodoEditorMode,
         repository: TodoRepositoryProtocol,

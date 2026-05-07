@@ -7,6 +7,7 @@
 
 import Foundation
 
+@MainActor
 protocol TodoEditorInteractorInput: AnyObject {
     func loadInitialTodo()
     func saveTodo(title: String, details: String?, isCompleted: Bool)
@@ -19,6 +20,7 @@ protocol TodoEditorInteractorOutput: AnyObject {
     func didFail(with error: Error)
 }
 
+@MainActor
 final class TodoEditorInteractor: TodoEditorInteractorInput {
     weak var output: TodoEditorInteractorOutput?
 
@@ -43,11 +45,14 @@ final class TodoEditorInteractor: TodoEditorInteractorInput {
         switch mode {
         case .create:
             repository.createTodo(title: title, details: details) { [weak self] result in
-                switch result {
-                case .failure(let error):
-                    self?.output?.didFail(with: error)
-                case .success(let item):
-                    self?.output?.didSave(todo: item)
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    switch result {
+                    case .failure(let error):
+                        self.output?.didFail(with: error)
+                    case .success(let item):
+                        self.output?.didSave(todo: item)
+                    }
                 }
             }
         case .edit(let origin):
@@ -57,11 +62,14 @@ final class TodoEditorInteractor: TodoEditorInteractorInput {
             updated.isCompleted = isCompleted
 
             repository.updateTodo(updated) { [weak self] result in
-                switch result {
-                case .failure(let error):
-                    self?.output?.didFail(with: error)
-                case .success(let item):
-                    self?.output?.didSave(todo: item)
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    switch result {
+                    case .failure(let error):
+                        self.output?.didFail(with: error)
+                    case .success(let item):
+                        self.output?.didSave(todo: item)
+                    }
                 }
             }
         }

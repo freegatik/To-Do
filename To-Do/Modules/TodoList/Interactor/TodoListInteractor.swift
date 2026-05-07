@@ -7,6 +7,7 @@
 
 import Foundation
 
+@MainActor
 protocol TodoListInteractorInput: AnyObject {
     func loadInitialTodos()
     func refreshTodos()
@@ -15,11 +16,13 @@ protocol TodoListInteractorInput: AnyObject {
     func searchTodos(query: String)
 }
 
+@MainActor
 protocol TodoListInteractorOutput: AnyObject {
     func didUpdateTodos(_ items: [TodoItem])
     func didFail(with error: Error)
 }
 
+@MainActor
 final class TodoListInteractor: TodoListInteractorInput {
     weak var output: TodoListInteractorOutput?
 
@@ -31,41 +34,53 @@ final class TodoListInteractor: TodoListInteractorInput {
 
     func loadInitialTodos() {
         repository.loadInitialTodos { [weak self] result in
-            self?.handle(result: result)
+            Task { @MainActor [weak self] in
+                self?.handle(result: result)
+            }
         }
     }
 
     func refreshTodos() {
         repository.fetchTodos { [weak self] result in
-            self?.handle(result: result)
+            Task { @MainActor [weak self] in
+                self?.handle(result: result)
+            }
         }
     }
 
     func toggleCompletion(for item: TodoItem) {
         repository.toggleCompletion(for: item) { [weak self] result in
-            switch result {
-            case .failure(let error):
-                self?.output?.didFail(with: error)
-            case .success:
-                self?.refreshTodos()
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                switch result {
+                case .failure(let error):
+                    self.output?.didFail(with: error)
+                case .success:
+                    self.refreshTodos()
+                }
             }
         }
     }
 
     func deleteTodo(_ item: TodoItem) {
         repository.deleteTodo(item) { [weak self] result in
-            switch result {
-            case .failure(let error):
-                self?.output?.didFail(with: error)
-            case .success:
-                self?.refreshTodos()
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                switch result {
+                case .failure(let error):
+                    self.output?.didFail(with: error)
+                case .success:
+                    self.refreshTodos()
+                }
             }
         }
     }
 
     func searchTodos(query: String) {
         repository.searchTodos(query: query) { [weak self] result in
-            self?.handle(result: result)
+            Task { @MainActor [weak self] in
+                self?.handle(result: result)
+            }
         }
     }
 

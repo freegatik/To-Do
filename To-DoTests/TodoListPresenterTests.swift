@@ -11,6 +11,7 @@ import Testing
 
 /// Проверяем поведение презентера списка задач
 @Suite("TodoListPresenter")
+@MainActor
 struct TodoListPresenterTests {
     @Test
     /// При старте экрана презентер устанавливает заголовок и делает первоначальную загрузку
@@ -354,6 +355,7 @@ struct TodoListPresenterTests {
 
 /// Тестовый double для вью, собирающий события от презентера
 
+@MainActor
 private final class MockTodoListView: TodoListViewProtocol {
     var navigationTitle: String?
     var isLoadingShown = false
@@ -400,6 +402,7 @@ private final class MockTodoListView: TodoListViewProtocol {
 }
 
 /// Заглушка интерактора, запоминающая вызовы без реализации логики
+@MainActor
 private final class MockTodoListInteractor: TodoListInteractorInput {
     var didCallLoadInitial = false
     var deletedItems: [TodoItem] = []
@@ -421,6 +424,7 @@ private final class MockTodoListInteractor: TodoListInteractorInput {
 }
 
 /// Роутер-заменитель для проверки передаваемых режимов открытия редактора
+@MainActor
 private final class MockTodoListRouter: TodoListRouterProtocol {
     var lastMode: TodoEditorMode?
     var presentEditorCallCount = 0

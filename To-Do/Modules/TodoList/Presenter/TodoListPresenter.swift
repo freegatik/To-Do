@@ -31,6 +31,7 @@ protocol TodoListPresenterProtocol: AnyObject {
     func contextMenuDidDisappear()
 }
 
+@MainActor
 final class TodoListPresenter: TodoListPresenterProtocol {
     weak var view: TodoListViewProtocol?
 
@@ -159,7 +160,7 @@ extension TodoListPresenter: TodoEditorModuleOutput {
 }
 
 private extension TodoListPresenter {
-    private static func makeDateFormatter() -> DateFormatter {
+    nonisolated private static func makeDateFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd/MM/yy"
         return formatter

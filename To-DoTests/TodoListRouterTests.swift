@@ -9,6 +9,7 @@ import XCTest
 @testable import To_Do
 
 /// Проверяем, как роутер списка задач открывает редактор
+@MainActor
 final class TodoListRouterTests: XCTestCase {
     private var router: TodoListRouter!
     private var repository: StubTodoRepository!
@@ -97,6 +98,7 @@ private final class SpyPresentingViewController: UIViewController {
 }
 
 /// Пустой spy, удовлетворяющий протокол модульного output
+@MainActor
 private final class TodoEditorModuleOutputSpy: TodoEditorModuleOutput {
     func todoEditorDidFinish(with result: TodoEditorResult) { }
 }

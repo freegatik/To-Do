@@ -81,7 +81,7 @@ struct TodoEditorInteractorTests {
 
     @Test
     /// В режиме создания ошибки пробрасываются через output
-    func testCreateModePropagatesFailure() {
+    func testCreateModePropagatesFailure() async {
         enum DummyError: Error { case failure }
         let repository = MockTodoRepository()
         repository.createResult = .failure(DummyError.failure)
@@ -90,6 +90,7 @@ struct TodoEditorInteractorTests {
         interactor.output = output
 
         interactor.saveTodo(title: "New", details: nil, isCompleted: false)
+        await yieldMainActor()
 
         #expect(repository.createCalled)
         #expect(output.lastError is DummyError)
@@ -97,7 +98,7 @@ struct TodoEditorInteractorTests {
 
     @Test
     /// В режиме редактирования ошибки обновления пробрасываются через output
-    func testEditModePropagatesFailure() {
+    func testEditModePropagatesFailure() async {
         enum DummyError: Error { case failure }
         let repository = MockTodoRepository()
         repository.updateResult = .failure(DummyError.failure)
@@ -107,6 +108,7 @@ struct TodoEditorInteractorTests {
         interactor.output = output
 
         interactor.saveTodo(title: "Edit", details: nil, isCompleted: false)
+        await yieldMainActor()
 
         #expect(repository.updateCalled)
         #expect(output.lastError is DummyError)
@@ -114,7 +116,7 @@ struct TodoEditorInteractorTests {
 
     @Test
     /// Интерактор вызывает toggleCompletion
-    func testToggleCompletionDelegatesToRepository() {
+    func testToggleCompletionDelegatesToRepository() async {
         let repository = MockTodoRepository()
         let item = TodoItem(id: 7, title: "Toggle", details: nil, createdAt: Date(), isCompleted: false)
         let interactor = TodoEditorInteractor(repository: repository, mode: .edit(item))
@@ -122,10 +124,15 @@ struct TodoEditorInteractorTests {
         interactor.output = output
 
         interactor.saveTodo(title: "Toggle", details: nil, isCompleted: true)
+        await yieldMainActor()
 
         #expect(repository.updateCalled)
         #expect(output.savedTodos.last?.isCompleted == true)
     }
+}
+
+private func yieldMainActor() async {
+    await Task { @MainActor in }.value
 }
 
 

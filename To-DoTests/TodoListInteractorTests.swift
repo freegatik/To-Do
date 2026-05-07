@@ -9,6 +9,7 @@ import XCTest
 @testable import To_Do
 
 /// Проверяем, как интерактор списка задач взаимодействует с репозиторием
+@MainActor
 final class TodoListInteractorTests: XCTestCase {
     private var repository: MockRepository!
     private var output: MockOutput!
@@ -245,6 +246,7 @@ private final class MockRepository: TodoRepositoryProtocol {
 }
 
 /// Output-заглушка, собирающая события от интерактора
+@MainActor
 private final class MockOutput: TodoListInteractorOutput {
     var updates: [[TodoItem]] = []
     var failures: [Error] = []

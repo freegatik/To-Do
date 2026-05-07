@@ -19,14 +19,16 @@ final class TodoAPIClientTests: XCTestCase {
     func testFetchTodosSuccessDeliversDecodedTodos() {
         let expectation = expectation(description: "completion")
         URLProtocolMock.response = HTTPURLResponse(url: TodoAPIClientTests.testURL, statusCode: 200, httpVersion: nil, headerFields: nil)
-        URLProtocolMock.testData = """
+        URLProtocolMock.testData = Data(
+        """
         {
           "todos": [
             {"id": 1, "todo": "Task 1", "completed": false, "userId": 10},
             {"id": 2, "todo": "Task 2", "completed": true, "userId": 11}
           ]
         }
-        """.data(using: .utf8)
+        """.utf8
+        )
 
         makeClient().fetchTodos { result in
             switch result {
@@ -159,11 +161,11 @@ private final class URLProtocolMock: URLProtocol {
     static var response: URLResponse?
     static var error: Error?
 
-    override class func canInit(with request: URLRequest) -> Bool {
+    override static func canInit(with request: URLRequest) -> Bool {
         true
     }
 
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
         request
     }
 
@@ -192,4 +194,3 @@ private final class URLProtocolMock: URLProtocol {
         error = nil
     }
 }
-

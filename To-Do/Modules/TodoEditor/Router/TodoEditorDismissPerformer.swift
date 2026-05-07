@@ -7,10 +7,12 @@
 
 import UIKit
 
+@MainActor
 protocol TodoEditorDismissPerformer: AnyObject {
     func dismiss(from viewController: UIViewController?)
 }
 
+@MainActor
 final class TodoEditorUIKitDismissPerformer: TodoEditorDismissPerformer {
     func dismiss(from viewController: UIViewController?) {
         guard let viewController else { return }

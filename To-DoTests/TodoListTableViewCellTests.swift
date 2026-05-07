@@ -25,7 +25,6 @@ final class TodoListTableViewCellTests: XCTestCase {
         try await super.tearDown()
     }
 
-
     private func makeEmptyCoder() throws -> NSKeyedUnarchiver {
         let archiver = NSKeyedArchiver(requiringSecureCoding: false)
         archiver.encode(0, forKey: "dummy")
@@ -182,18 +181,17 @@ final class TodoListTableViewCellTests: XCTestCase {
     func testHitTestReturnsSuperForPointsOutsideButtonArea() throws {
         cell.layoutIfNeeded()
         let statusButton: UIButton = try cell.element(named: "statusButton")
-        
+
         let farPoint = CGPoint(
             x: cell.bounds.width - 10,  // Правая часть ячейки
             y: cell.bounds.midY
         )
         let hitView = cell.hitTest(farPoint, with: nil)
-        
+
         XCTAssertNotNil(hitView)
         XCTAssertFalse(hitView === statusButton, "Points far from button should not hit the button")
     }
 }
-
 
 private extension TodoListTableViewCell {
     func element<T>(named name: String) throws -> T {
@@ -207,4 +205,3 @@ private extension TodoListTableViewCell {
         throw NSError(domain: "TodoListTableViewCellTests", code: 0, userInfo: [NSLocalizedDescriptionKey: "Property \(name) not found"])
     }
 }
-

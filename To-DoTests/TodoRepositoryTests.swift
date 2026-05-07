@@ -7,7 +7,7 @@
 
 import XCTest
 import CoreData
-@testable import To_Do
+@preconcurrency @testable import To_Do
 
 private enum RepositoryTestError: Error {
     case failure

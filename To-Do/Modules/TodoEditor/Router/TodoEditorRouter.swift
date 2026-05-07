@@ -7,10 +7,12 @@
 
 import UIKit
 
+@MainActor
 protocol TodoEditorRouterProtocol: AnyObject {
     func dismiss()
 }
 
+@MainActor
 final class TodoEditorRouter: TodoEditorRouterProtocol {
     weak var viewController: UIViewController?
 

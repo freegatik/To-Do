@@ -9,6 +9,7 @@ import XCTest
 import UIKit
 @testable import To_Do
 
+@MainActor
 final class TodoEditorRouterTests: XCTestCase {
 
     func testShouldUseNavigationPopReturnsTrueForStackWithMultipleControllers() {

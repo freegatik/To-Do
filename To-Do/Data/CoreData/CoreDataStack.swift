@@ -7,6 +7,17 @@
 
 import CoreData
 
+enum ToDoCoreDataModel {
+    static let shared: NSManagedObjectModel = {
+        let bundle = Bundle(for: CoreDataStack.self)
+        guard let url = bundle.url(forResource: "To_Do", withExtension: "momd"),
+              let model = NSManagedObjectModel(contentsOf: url) else {
+            fatalError("Could not load To_Do Core Data model from \(bundle.bundlePath)")
+        }
+        return model
+    }()
+}
+
 protocol CoreDataStackProtocol {
     var viewContext: NSManagedObjectContext { get }
     func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void)
@@ -39,7 +50,7 @@ final class CoreDataStack: CoreDataStackProtocol {
     }
 
     init(
-        container: NSPersistentContainer = NSPersistentContainer(name: "To_Do"),
+        container: NSPersistentContainer = NSPersistentContainer(name: "To_Do", managedObjectModel: ToDoCoreDataModel.shared),
         errorHandler: ((Error) -> Void)? = nil,
         shouldAssertOnError: Bool = true,
         loadPersistentStoresHandler: ((NSPersistentContainer, @escaping (NSPersistentStoreDescription, Error?) -> Void) -> Void)? = nil

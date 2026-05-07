@@ -7,6 +7,7 @@
 
 import Foundation
 
+@MainActor
 protocol TodoListViewProtocol: AnyObject {
     func setNavigationTitle(_ title: String)
     func showLoading(_ isLoading: Bool)
@@ -18,6 +19,7 @@ protocol TodoListViewProtocol: AnyObject {
     func share(text: String)
 }
 
+@MainActor
 protocol TodoListPresenterProtocol: AnyObject {
     func viewDidLoad()
     func didTapAdd()

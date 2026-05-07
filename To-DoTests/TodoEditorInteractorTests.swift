@@ -186,6 +186,7 @@ private final class MockTodoRepository: TodoRepositoryProtocol {
 }
 
 /// Output-заглушка, позволяющая перехватить результат интерактора
+@MainActor
 private final class MockTodoEditorOutput: TodoEditorInteractorOutput {
     var lastError: Error?
     var onSave: ((TodoItem) -> Void)?

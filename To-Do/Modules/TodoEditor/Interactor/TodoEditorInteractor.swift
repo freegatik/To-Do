@@ -12,6 +12,7 @@ protocol TodoEditorInteractorInput: AnyObject {
     func saveTodo(title: String, details: String?, isCompleted: Bool)
 }
 
+@MainActor
 protocol TodoEditorInteractorOutput: AnyObject {
     func didLoad(todo: TodoItem?)
     func didSave(todo: TodoItem)

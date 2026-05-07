@@ -37,6 +37,7 @@ final class TodoListViewControllerTests: XCTestCase {
         window.rootViewController = sut
         window.makeKeyAndVisible()
         PresentationRecorder.lastPresented = nil
+        PresentationRecorder.presentCount = 0
     }
 
     override func tearDown() async throws {
@@ -153,15 +154,17 @@ final class TodoListViewControllerTests: XCTestCase {
     }
 
     func testSharePresentsActivityController() async throws {
+        let baseline = PresentationRecorder.presentCount
         sut.share(text: "Some text")
 
-        _ = try await waitUntilPresentationCaptured(UIActivityViewController.self)
+        _ = try await waitUntilPresentationCaptured(UIActivityViewController.self, sincePresentCount: baseline)
     }
 
     func testShowErrorPresentsAlert() async throws {
+        let baseline = PresentationRecorder.presentCount
         sut.showError(message: "Failure")
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Ошибка")
         XCTAssertEqual(alert.message, "Failure")
     }
@@ -409,10 +412,11 @@ final class TodoListViewControllerTests: XCTestCase {
         sut.audioSessionProvider = { session }
         sut.speechAuthorizationRequest = { _ in XCTFail("Should not request speech authorization when mic denied") }
 
+        let baseline = PresentationRecorder.presentCount
         sut.requestSpeechAuthorizationAndStart()
         session.completePermission(granted: false)
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Нет доступа")
     }
 
@@ -425,21 +429,23 @@ final class TodoListViewControllerTests: XCTestCase {
             expectation.fulfill()
         }
 
+        let baseline = PresentationRecorder.presentCount
         sut.requestSpeechAuthorizationAndStart()
         session.completePermission(granted: true)
 
         await fulfillment(of: [expectation], timeout: 1)
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Нет доступа")
     }
 
     func testStartVoiceRecognitionWithoutRecognizerShowsError() async throws {
         sut.speechRecognizerFactory = { nil }
 
+        let baseline = PresentationRecorder.presentCount
         sut.startVoiceRecognition()
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Ошибка")
         XCTAssertEqual(alert.message, "Голосовой ввод недоступен.")
     }
@@ -661,9 +667,10 @@ final class TodoListViewControllerTests: XCTestCase {
         sut.audioSessionProvider = { session }
 
         sut.audioEngineFactory = { MockAudioEngine() }
+        let baseline = PresentationRecorder.presentCount
         sut.startVoiceRecognition()
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Ошибка")
         XCTAssertTrue(alert.message?.contains("микрофон") ?? false)
     }
@@ -685,9 +692,10 @@ final class TodoListViewControllerTests: XCTestCase {
         sut.audioEngineFactory = { audioEngine }
         sut.setAudioEngineForTests(audioEngine)
     
+        let baseline = PresentationRecorder.presentCount
         sut.startVoiceRecognition()
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Ошибка")
         XCTAssertTrue(alert.message?.contains("запустить запись") ?? false)
         XCTAssertTrue(audioEngine.stopCalled)
@@ -851,9 +859,10 @@ final class TodoListViewControllerTests: XCTestCase {
         sut.speechRecognizerFactory = { recognizer }
         sut.setSpeechRecognizerForTests(nil)
 
+        let baseline = PresentationRecorder.presentCount
         sut.startVoiceRecognition()
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Ошибка")
         XCTAssertEqual(alert.message, "Голосовой ввод недоступен.")
     }
@@ -867,9 +876,10 @@ final class TodoListViewControllerTests: XCTestCase {
         let session = MockAudioSession()
         sut.audioSessionProvider = { session }
 
+        let baseline = PresentationRecorder.presentCount
         sut.startVoiceRecognition()
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Ошибка")
         XCTAssertTrue(alert.message?.contains("подготовить голосовой ввод") ?? false)
     }
@@ -883,9 +893,10 @@ final class TodoListViewControllerTests: XCTestCase {
         session.setCategoryError = NSError(domain: "test", code: 1)
         sut.audioSessionProvider = { session }
 
+        let baseline = PresentationRecorder.presentCount
         sut.startVoiceRecognition()
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Ошибка")
         XCTAssertTrue(alert.message?.contains("активировать микрофон") ?? false)
     }
@@ -899,9 +910,10 @@ final class TodoListViewControllerTests: XCTestCase {
         session.setActiveError = NSError(domain: "test", code: 1)
         sut.audioSessionProvider = { session }
 
+        let baseline = PresentationRecorder.presentCount
         sut.startVoiceRecognition()
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Ошибка")
         XCTAssertTrue(alert.message?.contains("активировать микрофон") ?? false)
     }
@@ -915,12 +927,13 @@ final class TodoListViewControllerTests: XCTestCase {
             expectation.fulfill()
         }
 
+        let baseline = PresentationRecorder.presentCount
         sut.requestSpeechAuthorizationAndStart()
         session.completePermission(granted: true)
 
         await fulfillment(of: [expectation], timeout: 1)
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Нет доступа")
     }
 
@@ -933,12 +946,13 @@ final class TodoListViewControllerTests: XCTestCase {
             expectation.fulfill()
         }
 
+        let baseline = PresentationRecorder.presentCount
         sut.requestSpeechAuthorizationAndStart()
         session.completePermission(granted: true)
 
         await fulfillment(of: [expectation], timeout: 1)
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Нет доступа")
     }
 
@@ -951,12 +965,13 @@ final class TodoListViewControllerTests: XCTestCase {
             expectation.fulfill()
         }
 
+        let baseline = PresentationRecorder.presentCount
         sut.requestSpeechAuthorizationAndStart()
         session.completePermission(granted: true)
 
         await fulfillment(of: [expectation], timeout: 1)
 
-        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self)
+        let alert: UIAlertController = try await waitUntilPresentationCaptured(UIAlertController.self, sincePresentCount: baseline)
         XCTAssertEqual(alert.title, "Нет доступа")
     }
 
@@ -1385,13 +1400,15 @@ final class TodoListViewControllerTests: XCTestCase {
 
     private func waitUntilPresentationCaptured<T: UIViewController>(
         _ type: T.Type,
+        sincePresentCount baseline: UInt,
         timeout: TimeInterval = 1,
         file: StaticString = #filePath,
         line: UInt = #line
     ) async throws -> T {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
-            if let controller = PresentationRecorder.lastPresented as? T {
+            if PresentationRecorder.presentCount > baseline,
+               let controller = PresentationRecorder.lastPresented as? T {
                 return controller
             }
             try await Task.sleep(nanoseconds: 50_000_000)
@@ -1424,6 +1441,7 @@ private extension TodoListTableViewCell {
 
 private enum PresentationRecorder {
     static var lastPresented: UIViewController?
+    static var presentCount: UInt = 0
 }
 
 private extension UIViewController {
@@ -1441,6 +1459,7 @@ private extension UIViewController {
 
     @objc
     func test_present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
+        PresentationRecorder.presentCount &+= 1
         PresentationRecorder.lastPresented = viewControllerToPresent
         test_present(viewControllerToPresent, animated: flag, completion: completion)
     }

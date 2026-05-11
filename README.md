@@ -1,67 +1,75 @@
 <p align="center">
-  <img src="logo.png" alt="Логотип To-Do" width="120">
+  <img src="logo.png" width="200" alt="To-Do">
 </p>
 
 # To-Do
 
-Нативное iOS‑приложение для ведения списка задач, полностью работающее офлайн после первичного импорта. Проект собирает функциональность из UI‑макетов, сопровождается тестами и демонстрирует чистую VIPER‑архитектуру.
+![Static Badge](https://img.shields.io/badge/platform-iOS-white)
+![Static Badge](https://img.shields.io/badge/latest_release-v1.0.0-green)
+![Static Badge](https://img.shields.io/badge/swift-v5.0-orange)
 
-## Ключевые возможности
-- Современный список задач с кастомными ячейками, счетчиком задач и плавными анимациями при обновлениях.
-- Мгновенный поиск по названию и описанию, поддерживающий русские и латинские символы без учёта регистра.
-- Голосовой ввод поискового запроса через `Speech` и `AVFoundation` с автообновлением результатов и обработкой отказов в разрешениях.
-- Контекстное меню задачи в стиле макета: быстрые действия «Редактировать», «Поделиться» и «Удалить», деликатное размытие фона и адаптивное позиционирование.
-- Pull-to-refresh и отображение пустых состояний, чтобы пользователь всегда понимал, что происходит.
-- Редактор задач с автоподбором высоты полей, валидацией, статусом выполнения и подтверждением выхода при незаполненных данных.
-- Шэринг задачи через стандартный `UIActivityViewController` с заранее подготовленным текстом.
+[![CI](https://github.com/freegatik/To-Do/actions/workflows/ci.yml/badge.svg)](https://github.com/freegatik/To-Do/actions/workflows/ci.yml)
 
-## Данные и офлайн-режим
-- При первом запуске приложение импортирует задачи с `https://dummyjson.com/todos`, сериализует их и сохраняет в Core Data.
-- Далее используется полностью офлайн-режим: создание, редактирование, удаление и поиск работают поверх Core Data без сетевых запросов.
-- Все операции выполняются в фоновых контекстах `CoreDataStack`, UI обновляется на главном потоке.
+Native **UIKit** app (Swift **5**, iOS **15.6** minimum) for an offline-first task list. On first launch it imports seed data from **[dummyjson.com/todos](https://dummyjson.com/todos)** and persists with **Core Data**; afterwards CRUD, search, and filters run locally. **VIPER** modules **`TodoList`** (table, pull-to-refresh, voice search via **Speech** / **AVFoundation**, context menu) and **`TodoEditor`** (validation, share sheet). **`TodoRepository`** coordinates networking, Core Data, and domain models (`Domain/` vs DTOs in `Data/Networking`).
 
-## Архитектура
-- Два VIPER-модуля: `TodoList` (список и контекстное меню) и `TodoEditor` (создание/редактирование).
-- `TodoRepository` объединяет сеть, Core Data и бизнес-логику (инициализация, CRUD, поиск).
-- Доменные модели (`Domain/`) изолированы от DTO (`Data/Networking`) и `NSManagedObject`.
-- Роутеры управляют модальностями: список открывает редактор, редактор возвращает события через делегат.
-- Общие утилиты (например, цвета) вынесены в `Common/`.
+## CI
 
-## Требования к окружению
-- macOS 15.7+ и Xcode 16.1 (Swift 5.10).
-- iOS 18.0+ (проект проверен на iPhone 17 Pro, iOS 18.1 и iOS 18.4 симуляторах).
+Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on [GitHub Actions](https://github.com/freegatik/To-Do/actions) for **`push`**, **`pull_request`**, and **`workflow_dispatch`**. **`concurrency`** with **`cancel-in-progress`** limits duplicate runs per ref.
 
-## Сборка и запуск
-1. Клонируйте репозиторий и откройте `To-Do.xcodeproj`.
-2. Выберите схему `To-Do` и симулятор iOS 18.0+.
-3. Запустите приложение (`⌘R`). Если требуется UI-тест, передайте запусковому аргументу `--uitest` (это пропускает первичный импорт).
+| Job | What it runs |
+|-----|----------------|
+| **SwiftLint** | **`macos-15`**, prefers **Xcode 16.2** then **Xcode.app**; installs SwiftLint via Homebrew if missing; **`swiftlint lint`** with GitHub Actions reporter ([`.swiftlint.yml`](.swiftlint.yml)) |
+| **Build** | **`xcodebuild build`** for **`To-Do`** / **`To-Do.xcodeproj`**, **`generic/platform=iOS Simulator`**, **`EXCLUDED_ARCHS=x86_64`**, **`ONLY_ACTIVE_ARCH=YES`** |
+| **Static analysis** | **`xcodebuild analyze`** with the same simulator destination pattern |
+| **Tests + coverage** | [`prepare-ios-ci.sh`](.github/scripts/prepare-ios-ci.sh) (iOS platform / first launch), creates **`To-Do CI`** simulator via [`ensure-ci-simulator.sh`](.github/scripts/ensure-ci-simulator.sh), resolves **`-destination`** with [`xcode-sim-destination.sh`](.github/scripts/xcode-sim-destination.sh) (**UDID**, avoids **`name=` + implicit OS:latest** mismatches); **`xcodebuild test`** with **`-enableCodeCoverage YES`**, **`-resultBundlePath TestResults.xcresult`**, single parallel worker; **`xccov`** report in log; uploads **`TestResults.xcresult`** + **`coverage-targets.txt`** on **`always()`**; optional **Codecov** when **`CODECOV_TOKEN`** is set |
 
-## Тесты и проверка качества
-- Модульные тесты (`To-DoTests`) покрывают репозиторий, интерактор редактора и презентер списка.
-- UI-тесты (`To-DoUITests`) проверяют холодный старт и базовое взаимодействие.
-- Запуск из терминала:
-  ```bash
-  xcodebuild test \
-    -project To-Do.xcodeproj \
-    -scheme "To-Do" \
-    -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=18.1'
-  ```
+**Environment:** workflow pins **`DEVELOPER_DIR`** to **`Xcode.app`** by default and **`IPHONEOS_DEPLOYMENT_TARGET: "15.6"`** (aligned with the Xcode project).
 
-## Структура проекта
-- `Application/` — точка входа, сборка корневого модуля.
-- `Common/` — общие расширения и вспомогательные сущности.
-- `Data/` — Core Data стек, сетевой слой и репозиторий.
-- `Domain/` — бизнес-модели без UI-зависимостей.
-- `Modules/` — VIPER-компоненты экранов `TodoList` и `TodoEditor`.
-- `Tests/`, `UITests/` — автоматизированные проверки.
+## Requirements
 
-## Особенности реализации
-- Голосовой поиск аккуратно управляет `AVAudioSession`, очищает ресурсы при уходе со страницы.
-- Контекстное меню динамически рассчитывает позицию и ширину карточек, чтобы без артефактов вписываться в экран.
-- Репозиторий использует `performBackgroundTask` и потокобезопасные контексты, что исключает подвисания UI.
-- Для форматирования дат применяются отдельные `DateFormatter`, инкапсулированные в презентерах.
+- **Xcode 16.x** (CI targets **Xcode 16.2** when installed on the runner)
+- **macOS 15+**-class runner image (**`macos-15`** in CI)
+- Simulator **iOS ≥ 15.6**; locally you can use any compatible device (e.g. **iPhone 17 Pro** with a recent iOS as in your own checks)
 
-## Дальнейшие улучшения
-- Добавить iCloud-синхронизацию между устройствами.
-- Настроить локальные уведомления по срокам задач.
-- Вынести голосовые сценарии в отдельный сервис для переиспользования.
+## Getting started
+
+```bash
+git clone https://github.com/freegatik/To-Do.git
+cd To-Do
+open To-Do.xcodeproj
+```
+
+Use the **To-Do** scheme: **⌘R** to run, **⌘U** for tests. For UI tests that should skip the first network import, pass the launch argument **`--uitest`**.
+
+## Project layout
+
+| Area | Path / notes |
+|------|----------------|
+| Lifecycle | `To-Do/Application/` (`AppDelegate`, `SceneDelegate`) |
+| VIPER modules | `To-Do/Modules/TodoList/`, `To-Do/Modules/TodoEditor/` |
+| Data | `To-Do/Data/` (Core Data stack, **`TodoRepository`**, **`TodoAPIClient`**, API models) |
+| Domain | `To-Do/Domain/` |
+| Shared UI helpers | `To-Do/Common/` |
+| Model file | `To-Do/To_Do.xcdatamodeld/` |
+| Unit tests | `To-DoTests/` |
+| UI tests | `To-DoUITests/` |
+
+## Testing
+
+CI runs **unit + UI** tests in one **`xcodebuild test`** invocation. Locally (pick a destination that exists on your Mac):
+
+```bash
+xcodebuild test \
+  -project To-Do.xcodeproj \
+  -scheme "To-Do" \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=18.1' \
+  -enableCodeCoverage YES \
+  -resultBundlePath /tmp/To-Do.xcresult
+xcrun xccov view --report /tmp/To-Do.xcresult | head -40
+```
+
+Lint (same config as CI):
+
+```bash
+swiftlint lint --reporter github-actions-logging
+```

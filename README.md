@@ -73,3 +73,7 @@ Lint (same config as CI):
 ```bash
 swiftlint lint --reporter github-actions-logging
 ```
+
+## License
+
+Published under the [MIT License](LICENSE). Third-party APIs, assets, and simulator-only resources remain subject to their respective terms.
